@@ -1,0 +1,9 @@
+Django~=5.2.12
+django-allauth>=65,<66
+PyMySQL>=1.1,<2
+python-dotenv>=1.0,<2
+Pillow>=11,<12
+gunicorn>=23,<24
+requests>=2.32,<3
+PyJWT>=2.9,<3
+cryptography>=45,<46

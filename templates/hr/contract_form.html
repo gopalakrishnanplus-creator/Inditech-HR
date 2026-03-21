@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Contract | Inditech HR{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-3">Contract upload</h1>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-dark" type="submit">Save</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'hr:contract-list' %}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

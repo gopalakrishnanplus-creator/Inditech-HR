@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Payroll | Inditech HR{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-3">Generate payroll</h1>
+                <p class="text-muted">Payroll can only be generated for a month that has already completed.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-dark" type="submit">Generate</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'payroll:run-list' %}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

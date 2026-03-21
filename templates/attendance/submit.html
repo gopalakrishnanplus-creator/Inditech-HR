@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Attendance | Inditech HR{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-3">Daily attendance</h1>
+                <div class="mb-4">
+                    <div><strong>Name:</strong> {{ employee.full_name }}</div>
+                    <div><strong>Type:</strong> {{ employee.get_employment_type_display }}</div>
+                    <div><strong>Reports to:</strong> {{ employee.manager.full_name|default:"Not assigned" }}</div>
+                    <div><strong>Date:</strong> {{ today }}</div>
+                </div>
+                {% if today_record %}
+                    <div class="alert alert-success">Attendance already submitted for today.</div>
+                    <p class="mb-0"><strong>Summary:</strong> {{ today_record.work_summary }}</p>
+                {% else %}
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button class="btn btn-dark" type="submit">Submit attendance</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance History | Inditech HR{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Attendance history</h1>
+    <a class="btn btn-outline-dark" href="{% url 'attendance:submit' %}">Submit today's attendance</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Submitted at</th>
+                <th>Summary</th>
+                <th>File</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for record in records %}
+                <tr>
+                    <td>{{ record.attendance_date }}</td>
+                    <td>{{ record.submitted_at }}</td>
+                    <td>{{ record.work_summary|truncatechars:120 }}</td>
+                    <td>
+                        {% if record.supporting_file %}
+                            <a href="{{ record.supporting_file.url }}">Open</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4" class="text-center py-4">No attendance submitted yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

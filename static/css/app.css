@@ -1,0 +1,13 @@
+body {
+    background: #f6f7fb;
+}
+
+.card {
+    border: 0;
+    border-radius: 1rem;
+}
+
+.table th,
+.table td {
+    white-space: nowrap;
+}
