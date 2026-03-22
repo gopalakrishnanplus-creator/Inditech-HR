@@ -15,6 +15,8 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-secret-key")
 DEBUG = os.environ.get("DEBUG", "1") == "1"
 SYSTEM_ADMIN_EMAIL = os.environ.get("SYSTEM_ADMIN_EMAIL", "gopala.krishnan@inditech.co.in").lower()
+LOCAL_PASSWORD_LOGIN_ENABLED = os.environ.get("LOCAL_PASSWORD_LOGIN_ENABLED", "1" if DEBUG else "0") == "1"
+LOCAL_DEV_DEFAULT_PASSWORD = os.environ.get("LOCAL_DEV_DEFAULT_PASSWORD", "password")
 
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if host.strip()]
 CSRF_TRUSTED_ORIGINS = [
@@ -127,7 +129,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SITE_ID = 1
-LOGIN_URL = 'account_login'
+LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'accounts:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:landing'
 

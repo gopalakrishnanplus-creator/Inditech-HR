@@ -57,5 +57,40 @@ def ensure_default_system_admin():
         email=email,
         defaults={'username': email, 'is_active': True},
     )
+    if settings.LOCAL_PASSWORD_LOGIN_ENABLED:
+        user.set_password(settings.LOCAL_DEV_DEFAULT_PASSWORD)
+        user.save(update_fields=['password'])
+    sync_user_permissions(user)
+    return user
+
+
+def ensure_local_password_user(email):
+    email = normalize_email(email)
+    if not settings.LOCAL_PASSWORD_LOGIN_ENABLED or not email:
+        return None
+
+    User = get_user_model()
+    try:
+        user = User.objects.get(email__iexact=email)
+    except User.DoesNotExist:
+        allowed = (
+            email == normalize_email(settings.SYSTEM_ADMIN_EMAIL)
+            or Employee.objects.filter(work_email__iexact=email).exists()
+            or RoleAssignment.objects.filter(email__iexact=email, active=True).exists()
+        )
+        if not allowed:
+            return None
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password=settings.LOCAL_DEV_DEFAULT_PASSWORD,
+            is_active=True,
+        )
+
+    user.email = email
+    if user.username != email:
+        user.username = email
+    user.set_password(settings.LOCAL_DEV_DEFAULT_PASSWORD)
+    user.save(update_fields=['email', 'username', 'password'])
     sync_user_permissions(user)
     return user
