@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -19,3 +20,57 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::736616688306:role/GitHubActionsInditechHRDeployRole
           aws-region: ap-south-1
+
+      - name: Send deploy command to EC2 using SSM
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:App,Values=inditech-hr" \
+            --comment "Deploy Inditech HR from GitHub Actions" \
+            --parameters 'commands=[
+              "sudo /usr/local/bin/deploy-inditech-hr.sh"
+            ]' \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID"
+          echo "COMMAND_ID=$COMMAND_ID" >> $GITHUB_ENV
+
+      - name: Wait for command completion
+        run: |
+          for i in {1..30}; do
+            STATUS=$(aws ssm list-command-invocations \
+              --command-id "$COMMAND_ID" \
+              --details \
+              --query "CommandInvocations[0].Status" \
+              --output text)
+
+            echo "Current status: $STATUS"
+
+            if [ "$STATUS" = "Success" ]; then
+              exit 0
+            fi
+
+            if [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ] || [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelling" ]; then
+              echo "Deployment failed with status: $STATUS"
+              aws ssm list-command-invocations \
+                --command-id "$COMMAND_ID" \
+                --details
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          echo "Deployment timed out while waiting for SSM command completion"
+          aws ssm list-command-invocations \
+            --command-id "$COMMAND_ID" \
+            --details
+          exit 1
+
+      - name: Show command output
+        if: always()
+        run: |
+          aws ssm list-command-invocations \
+            --command-id "$COMMAND_ID" \
+            --details
