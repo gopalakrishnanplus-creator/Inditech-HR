@@ -32,10 +32,8 @@ jobs:
             --parameters '{"commands": [
               "set -e",
               "cd /var/www/Inditech-HR",
-              "git config --global --add safe.directory /var/www/Inditech-HR",
               "git fetch origin",
               "git reset --hard origin/main",
-              "git log -1",
               "/var/www/.venv/bin/pip install -r requirements.txt",
               "sudo systemctl restart inditech-hr"
             ]}' \
