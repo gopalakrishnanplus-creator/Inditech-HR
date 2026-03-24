@@ -1,10 +1,9 @@
-name: Deploy Inditech HR to EC2
+name: Deploy Inditech HR to EC2 via SSM
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -15,62 +14,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Configure AWS credentials from OIDC
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::736616688306:role/GitHubActionsInditechHRDeployRole
           aws-region: ap-south-1
 
-      - name: Send deploy command to EC2 using SSM
+      - name: Deploy using SSM
         run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --document-name "AWS-RunShellScript" \
-            --targets "Key=tag:App,Values=inditech-hr" \
-            --comment "Deploy Inditech HR from GitHub Actions" \
-            --parameters 'commands=[
-              "sudo /usr/local/bin/deploy-inditech-hr.sh"
-            ]' \
-            --query "Command.CommandId" \
-            --output text)
-
-          echo "Command ID: $COMMAND_ID"
-          echo "COMMAND_ID=$COMMAND_ID" >> $GITHUB_ENV
-
-      - name: Wait for command completion
-        run: |
-          for i in {1..30}; do
-            STATUS=$(aws ssm list-command-invocations \
-              --command-id "$COMMAND_ID" \
-              --details \
-              --query "CommandInvocations[0].Status" \
-              --output text)
-
-            echo "Current status: $STATUS"
-
-            if [ "$STATUS" = "Success" ]; then
-              exit 0
-            fi
-
-            if [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ] || [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelling" ]; then
-              echo "Deployment failed with status: $STATUS"
-              aws ssm list-command-invocations \
-                --command-id "$COMMAND_ID" \
-                --details
-              exit 1
-            fi
-
-            sleep 10
-          done
-
-          echo "Deployment timed out while waiting for SSM command completion"
-          aws ssm list-command-invocations \
-            --command-id "$COMMAND_ID" \
-            --details
-          exit 1
-
-      - name: Show command output
-        if: always()
-        run: |
-          aws ssm list-command-invocations \
-            --command-id "$COMMAND_ID" \
-            --details
+          aws ssm send-command 
+            --instance-ids "i-042b772db54dd2178" 
+            --document-name "AWS-RunShellScript" 
+            --comment "Deploy Inditech HR" 
+            --parameters commands=[
+              "cd /var/www/Inditech-HR",
+              "git pull origin main",
+              "/var/www/.venv/bin/pip install -r requirements.txt",
+              "/var/www/.venv/bin/python manage.py migrate",
+              "/var/www/.venv/bin/python manage.py collectstatic --noinput",
+              "systemctl restart inditech-hr"
+            ]
