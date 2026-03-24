@@ -14,34 +14,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Configure AWS credentials from GitHub OIDC
+      - name: Configure AWS credentials from OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::736616688306:role/GitHubActionsInditechHRDeployRole
           aws-region: ap-south-1
-
-      - name: Send deploy command to EC2 using SSM
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --document-name "AWS-RunShellScript" \
-            --targets "Key=tag:App,Values=inditech-hr" \
-            --comment "Deploy Inditech HR from GitHub Actions" \
-            --parameters 'commands=[
-              "set -e",
-              "cd /var/www/Inditech-HR",
-              "git fetch --all",
-              "git reset --hard origin/main",
-              "/var/www/.venv/bin/pip install -r requirements.txt",
-              "/var/www/.venv/bin/python manage.py migrate --noinput",
-              "/var/www/.venv/bin/python manage.py collectstatic --noinput || true",
-              "sudo systemctl restart inditech-hr",
-              "sudo systemctl status inditech-hr --no-pager"
-            ]' \
-            --query "Command.CommandId" \
-            --output text)
-
-          echo "Command ID: $COMMAND_ID"
-
-          aws ssm list-command-invocations \
-            --command-id "$COMMAND_ID" \
-            --details
