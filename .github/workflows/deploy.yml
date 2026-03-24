@@ -29,7 +29,7 @@ jobs:
             --instance-ids "i-042b772db54dd2178" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy Inditech HR" \
-            --parameters '{"commands":["set -e","cd /var/www/Inditech-HR","git fetch origin","git reset --hard origin/main","/var/www/.venv/bin/pip install -r requirements.txt","/var/www/.venv/bin/python manage.py migrate","/var/www/.venv/bin/python manage.py collectstatic --noinput","sudo systemctl restart inditech-hr"]}' \
+            --parameters '{"commands":["set -e","git config --system --add safe.directory /var/www/Inditech-HR","cd /var/www/Inditech-HR","git fetch origin","git reset --hard origin/main","/var/www/.venv/bin/pip install -r requirements.txt","/var/www/.venv/bin/python manage.py migrate","/var/www/.venv/bin/python manage.py collectstatic --noinput","sudo systemctl restart inditech-hr"]}'
             --query "Command.CommandId" \
             --output text)
 
