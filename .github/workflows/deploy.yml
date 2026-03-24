@@ -25,15 +25,15 @@ jobs:
 
       - name: Deploy using SSM
         run: |
-          aws ssm send-command 
-            --instance-ids "i-042b772db54dd2178" 
-            --document-name "AWS-RunShellScript" 
-            --comment "Deploy Inditech HR" 
-            --parameters commands=[
+          aws ssm send-command \
+            --instance-ids "i-042b772db54dd2178" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy Inditech HR" \
+            --parameters 'commands=[
               "cd /var/www/Inditech-HR",
               "git pull origin main",
               "/var/www/.venv/bin/pip install -r requirements.txt",
               "/var/www/.venv/bin/python manage.py migrate",
               "/var/www/.venv/bin/python manage.py collectstatic --noinput",
               "sudo systemctl restart inditech-hr"
-            ]
+            ]'
