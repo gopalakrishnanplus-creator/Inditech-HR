@@ -1,4 +1,4 @@
-# Inditech HR
+# Inditech HR Test1
 
 Inditech HR is a Django application for managing employee, intern, consultant, and freelancer records, contracts, holidays, approved leaves, attendance submissions, and month-end payroll generation.
 
