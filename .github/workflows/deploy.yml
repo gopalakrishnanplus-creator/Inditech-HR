@@ -35,5 +35,5 @@ jobs:
               "/var/www/.venv/bin/pip install -r requirements.txt",
               "/var/www/.venv/bin/python manage.py migrate",
               "/var/www/.venv/bin/python manage.py collectstatic --noinput",
-              "systemctl restart inditech-hr"
+              "sudo systemctl restart inditech-hr"
             ]
