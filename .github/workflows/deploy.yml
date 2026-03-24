@@ -17,7 +17,7 @@ jobs:
       - name: Configure AWS credentials from GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::<AWS_ACCOUNT_ID>:role/GitHubActionsInditechHRDeployRole
+          role-to-assume: arn:aws:iam::736616688306:role/GitHubActionsInditechHRDeployRole
           aws-region: ap-south-1
 
       - name: Send deploy command to EC2 using SSM
