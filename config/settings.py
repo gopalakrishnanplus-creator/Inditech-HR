@@ -21,7 +21,7 @@ LOCAL_DEV_DEFAULT_PASSWORD = os.environ.get("LOCAL_DEV_DEFAULT_PASSWORD", "passw
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost,hr.inditech.co.in").split(",") if host.strip()]
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
-    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000").split(",")
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000,https://hr.inditech.co.in").split(",")
     if origin.strip()
 ]
 
