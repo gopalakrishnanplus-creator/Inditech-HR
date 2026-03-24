@@ -32,15 +32,25 @@ jobs:
             --parameters '{"commands":["set -e","cd /var/www/Inditech-HR","git fetch origin","git reset --hard origin/main","/var/www/.venv/bin/pip install -r requirements.txt","/var/www/.venv/bin/python manage.py migrate","/var/www/.venv/bin/python manage.py collectstatic --noinput","sudo systemctl restart inditech-hr"]}' \
             --query "Command.CommandId" \
             --output text)
-    
+
           echo "Command ID: $COMMAND_ID"
-    
-          # Wait until execution completes
+
           aws ssm wait command-executed \
             --command-id $COMMAND_ID \
-            --instance-id i-042b772db54dd2178
-    
-          # Fetch logs
+            --instance-id i-042b772db54dd2178 || true
+
           aws ssm list-command-invocations \
             --command-id $COMMAND_ID \
             --details
+
+          STATUS=$(aws ssm list-command-invocations \
+            --command-id $COMMAND_ID \
+            --query "CommandInvocations[0].Status" \
+            --output text)
+
+          echo "SSM Status: $STATUS"
+
+          if [ "$STATUS" != "Success" ]; then
+            echo "Deployment failed"
+            exit 1
+          fi
