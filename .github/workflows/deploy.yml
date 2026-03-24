@@ -29,26 +29,25 @@ jobs:
             --instance-ids "i-042b772db54dd2178" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy Inditech HR" \
-            --parameters 'commands=[
+            --parameters '{"commands": [
+              "set -e",
               "cd /var/www/Inditech-HR",
+              "git config --global --add safe.directory /var/www/Inditech-HR",
               "git fetch origin",
               "git reset --hard origin/main",
+              "git log -1",
               "/var/www/.venv/bin/pip install -r requirements.txt",
-              "/var/www/.venv/bin/python manage.py migrate",
-              "/var/www/.venv/bin/python manage.py collectstatic --noinput",
               "sudo systemctl restart inditech-hr"
-            ]' \
+            ]}' \
             --query "Command.CommandId" \
             --output text)
       
           echo "Command ID: $COMMAND_ID"
       
-          # Wait until command completes
           aws ssm wait command-executed \
             --command-id $COMMAND_ID \
             --instance-id i-042b772db54dd2178
       
-          # Fetch execution logs
           aws ssm list-command-invocations \
             --command-id $COMMAND_ID \
             --details
