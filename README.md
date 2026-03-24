@@ -87,6 +87,6 @@ For deployment, add the production domain callback as well.
 - Leave without pay deduction uses monthly compensation divided by the number of calendar days in the month
 - Payroll generation is blocked until the selected month has completed
 
-## Deployment target
+## Deployment target 1
 
 The application is configured for Django + MySQL and is suitable for deployment on AWS EC2 behind a standard reverse proxy such as Nginx.
