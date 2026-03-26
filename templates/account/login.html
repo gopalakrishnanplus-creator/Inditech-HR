@@ -9,21 +9,8 @@
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h1 class="h4 mb-3">Login</h1>
-                {% if local_password_login_enabled %}
-                    <p class="text-muted">
-                        Local password login is enabled for development. Default password:
-                        <code>{{ dev_password_hint }}</code>
-                    </p>
-                    <form method="post" class="mb-3">
-                        {% csrf_token %}
-                        {{ form.as_p }}
-                        <button class="btn btn-dark w-100" type="submit">Login with password</button>
-                    </form>
-                    <div class="text-center text-muted small mb-3">or</div>
-                {% else %}
-                    <p class="text-muted">Use your Google account to access the HR application.</p>
-                {% endif %}
-                <a class="btn btn-outline-dark w-100" href="{% provider_login_url 'google' %}">Continue with Google</a>
+                <p class="text-muted">Use your Google account to access the HR application.</p>
+                <a class="btn btn-outline-dark w-100" href="{% provider_login_url 'google' process='login' %}">Continue with Google</a>
             </div>
         </div>
     </div>

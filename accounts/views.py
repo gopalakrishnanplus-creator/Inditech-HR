@@ -1,17 +1,15 @@
 from datetime import timedelta
 
 from django.contrib import messages
-from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.conf import settings
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, FormView, ListView, TemplateView, UpdateView
+from django.views.generic import CreateView, ListView, TemplateView, UpdateView
 
 from attendance.models import AttendanceRecord
 from hr.models import Employee
 
-from .forms import LocalPasswordLoginForm, RoleAssignmentForm
+from .forms import RoleAssignmentForm
 from .models import RoleAssignment
 from .permissions import SystemAdminRequiredMixin
 from .services import get_role_names, get_user_employee, sync_user_permissions
@@ -19,34 +17,6 @@ from .services import get_role_names, get_user_employee, sync_user_permissions
 
 class LandingView(TemplateView):
     template_name = 'accounts/landing.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['local_password_login_enabled'] = settings.LOCAL_PASSWORD_LOGIN_ENABLED
-        context['dev_password_hint'] = settings.LOCAL_DEV_DEFAULT_PASSWORD if settings.LOCAL_PASSWORD_LOGIN_ENABLED else ''
-        return context
-
-
-class LocalLoginView(FormView):
-    template_name = 'account/login.html'
-    form_class = LocalPasswordLoginForm
-    success_url = reverse_lazy('accounts:dashboard')
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['request'] = self.request
-        return kwargs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['local_password_login_enabled'] = settings.LOCAL_PASSWORD_LOGIN_ENABLED
-        context['dev_password_hint'] = settings.LOCAL_DEV_DEFAULT_PASSWORD if settings.LOCAL_PASSWORD_LOGIN_ENABLED else ''
-        return context
-
-    def form_valid(self, form):
-        login(self.request, form.get_user())
-        messages.success(self.request, 'Logged in successfully.')
-        return super().form_valid(form)
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Redirecting | Inditech HR{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-3">Redirecting to Google</h1>
+                <p class="text-muted">If you are not redirected automatically, continue below.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <button class="btn btn-dark w-100" type="submit">Continue with Google</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.forms[0].submit();
+</script>
+{% endblock %}

@@ -9,14 +9,24 @@ pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 load_dotenv("/var/www/secrets/.hr_env")
 
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-secret-key")
 DEBUG = os.environ.get("DEBUG", "1") == "1"
-SYSTEM_ADMIN_EMAIL = os.environ.get("SYSTEM_ADMIN_EMAIL", "gopala.krishnan@inditech.co.in").lower()
-LOCAL_PASSWORD_LOGIN_ENABLED = os.environ.get("LOCAL_PASSWORD_LOGIN_ENABLED", "1" if DEBUG else "0") == "1"
-LOCAL_DEV_DEFAULT_PASSWORD = os.environ.get("LOCAL_DEV_DEFAULT_PASSWORD", "password")
+SYSTEM_ADMIN_EMAILS = sorted(
+    {
+        email.strip().lower()
+        for email in (
+            os.environ.get("SYSTEM_ADMIN_EMAILS", "")
+            + ","
+            + os.environ.get("SYSTEM_ADMIN_EMAIL", "")
+            + ",gkinchina@gmail.com,gopala.krishnan@inditech.co.in"
+        ).split(",")
+        if email.strip()
+    }
+)
 
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost,hr.inditech.co.in").split(",") if host.strip()]
 CSRF_TRUSTED_ORIGINS = [
@@ -129,7 +139,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SITE_ID = 1
-LOGIN_URL = 'accounts:login'
+LOGIN_URL = 'accounts:landing'
 LOGIN_REDIRECT_URL = 'accounts:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:landing'
 
@@ -149,7 +159,6 @@ SOCIALACCOUNT_ADAPTER = 'accounts.adapter.RoleAwareSocialAccountAdapter'
 
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
-print("GOOGLE_CLIENT_ID -> ", GOOGLE_CLIENT_ID)
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
