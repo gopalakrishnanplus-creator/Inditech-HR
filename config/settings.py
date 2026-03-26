@@ -9,7 +9,7 @@ pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv("var/www/secrets/.hr_env")
+load_dotenv("/var/www/secrets/.hr_env")
 
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-secret-key")
