@@ -15,6 +15,7 @@
                 </p>
                 <div class="d-flex flex-wrap gap-2 mt-4">
                     <a class="btn btn-dark" href="{% provider_login_url 'google' process='login' %}">Continue with Google</a>
+                    <a class="btn btn-outline-secondary" href="{% url 'accounts:attendance-login' %}">Employee attendance login</a>
                     {% if user.is_authenticated %}
                         <a class="btn btn-outline-secondary" href="{% url 'accounts:dashboard' %}">Open dashboard</a>
                     {% endif %}

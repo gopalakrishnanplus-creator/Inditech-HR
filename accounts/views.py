@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView
@@ -17,6 +18,29 @@ from .services import get_role_names, get_user_employee, sync_user_permissions
 
 class LandingView(TemplateView):
     template_name = 'accounts/landing.html'
+
+
+class AttendanceLoginView(TemplateView):
+    template_name = 'accounts/attendance_login.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('accounts:attendance-entry')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['attendance_entry_url'] = reverse_lazy('accounts:attendance-entry')
+        return context
+
+
+class AttendanceEntryView(LoginRequiredMixin, TemplateView):
+    def get(self, request, *args, **kwargs):
+        sync_user_permissions(request.user)
+        if get_user_employee(request.user):
+            return redirect('attendance:submit')
+        messages.error(request, 'This sign-in link is only for employees, interns, and consultants with attendance access.')
+        return redirect('accounts:dashboard')
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
