@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.http.response import HttpResponseRedirectBase
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, UpdateView
 
@@ -6,6 +7,10 @@ from accounts.permissions import FinanceManagerRequiredMixin, HRManagerRequiredM
 
 from .forms import ApprovedLeaveForm, EmployeeContractForm, EmployeeForm, HolidayForm
 from .models import ApprovedLeave, Employee, EmployeeContract, Holiday
+
+
+class HttpResponseSeeOther(HttpResponseRedirectBase):
+    status_code = 303
 
 
 class EmployeeListView(HRManagerRequiredMixin, ListView):
@@ -50,8 +55,9 @@ class EmployeeContractCreateView(HRManagerRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.uploaded_by = self.request.user
+        self.object = form.save()
         messages.success(self.request, 'Contract uploaded.')
-        return super().form_valid(form)
+        return HttpResponseSeeOther(self.get_success_url())
 
 
 class EmployeeContractUpdateView(HRManagerRequiredMixin, UpdateView):
@@ -61,8 +67,9 @@ class EmployeeContractUpdateView(HRManagerRequiredMixin, UpdateView):
     success_url = reverse_lazy('hr:contract-list')
 
     def form_valid(self, form):
+        self.object = form.save()
         messages.success(self.request, 'Contract updated.')
-        return super().form_valid(form)
+        return HttpResponseSeeOther(self.get_success_url())
 
 
 class HolidayListView(FinanceManagerRequiredMixin, ListView):
