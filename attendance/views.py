@@ -26,6 +26,7 @@ class AttendanceSubmitView(EmployeeRequiredMixin, FormView):
         context = super().get_context_data(**kwargs)
         context.update(
             {
+                'hide_management_nav': True,
                 'employee': self.employee,
                 'today': self.today,
                 'today_record': self.today_record,
@@ -49,6 +50,11 @@ class AttendanceHistoryView(EmployeeRequiredMixin, ListView):
     model = AttendanceRecord
     template_name = 'attendance/history.html'
     context_object_name = 'records'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['hide_management_nav'] = True
+        return context
 
     def get_queryset(self):
         employee = get_user_employee(self.request.user)

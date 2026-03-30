@@ -31,7 +31,7 @@ class HRManagerRequiredMixin(RoleRequiredMixin):
 
 
 class FinanceManagerRequiredMixin(RoleRequiredMixin):
-    required_roles = ('finance_manager',)
+    required_roles = ('finance_manager', 'hr_manager')
 
 
 class EmployeeRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
