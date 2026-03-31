@@ -28,6 +28,9 @@
             <div class="card-body">
                 <div class="text-muted small">Contracts ending within 30 days</div>
                 <div class="display-6">{{ pending_contracts }}</div>
+                {% if is_hr_manager %}
+                    <a class="btn btn-sm btn-outline-dark mt-3" href="{% url 'accounts:upcoming-contracts' %}">View expiring contracts</a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -65,7 +68,11 @@
                 <div class="card-body">
                     <h2 class="h5">HR Manager</h2>
                     <p class="text-muted">Manage people records, contract dates, compensation, and uploaded contracts.</p>
-                    <a class="btn btn-outline-dark" href="{% url 'hr:employee-list' %}">Open employee records</a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-outline-dark" href="{% url 'hr:employee-list' %}">Open employee records</a>
+                        <a class="btn btn-outline-dark" href="{% url 'accounts:attendance-summary' %}">Attendance Summary</a>
+                        <a class="btn btn-outline-dark" href="{% url 'accounts:attendance-summary' %}?month=previous">Previous Month</a>
+                    </div>
                 </div>
             </div>
         </div>

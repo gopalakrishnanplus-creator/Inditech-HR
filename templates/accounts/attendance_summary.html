@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Summary | Inditech HR{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Attendance Summary</h1>
+        <p class="text-muted mb-0">{{ month_label }} | {{ month_start }} to {{ month_end }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn {% if month_key == 'current' %}btn-dark{% else %}btn-outline-dark{% endif %}" href="{% url 'accounts:attendance-summary' %}">Current Month</a>
+        <a class="btn {% if month_key == 'previous' %}btn-dark{% else %}btn-outline-dark{% endif %}" href="{% url 'accounts:attendance-summary' %}?month=previous">Previous Month</a>
+        <a class="btn btn-outline-dark" href="{% url 'accounts:dashboard' %}">Back to dashboard</a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Employment Type</th>
+                <th>Attendance Submitted</th>
+                <th>Number of Absent Days</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{ row.employee.full_name }}</td>
+                    <td>{{ row.employee.get_employment_type_display }}</td>
+                    <td>{{ row.submitted_days }}</td>
+                    <td>
+                        <a href="{% url 'accounts:attendance-missing-dates' row.employee.pk %}{% if month_key == 'previous' %}?month=previous{% endif %}">
+                            Number of Absent Days: {{ row.missing_days_count }}
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4" class="text-center py-4">No attendance-tracked employees found.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
