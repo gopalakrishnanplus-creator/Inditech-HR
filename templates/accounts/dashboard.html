@@ -50,7 +50,7 @@
             <h2 class="h5">Attendance</h2>
             <p class="mb-2">
                 {{ employee.full_name }} | {{ employee.get_employment_type_display }} | Reports to:
-                {{ employee.manager.full_name|default:"Not assigned" }}
+                {{ employee.manager_name|default:"Not assigned" }}
             </p>
             {% if today_attendance %}
                 <div class="alert alert-success mb-0">Attendance already submitted for today.</div>

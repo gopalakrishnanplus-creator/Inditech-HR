@@ -14,14 +14,9 @@ class Employee(models.Model):
     work_email = models.EmailField(unique=True)
     employment_type = models.CharField(max_length=32, choices=EmploymentType.choices)
     department = models.CharField(max_length=255)
+    manager_name = models.CharField(max_length=255, blank=True)
+    manager_email = models.EmailField(blank=True)
     designation = models.CharField(max_length=255)
-    manager = models.ForeignKey(
-        'self',
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name='reportees',
-    )
     monthly_compensation = models.DecimalField(max_digits=12, decimal_places=2)
     annual_leave_allowance = models.PositiveIntegerField(default=12)
     monthly_leave_cap = models.PositiveIntegerField(default=1)
@@ -41,6 +36,7 @@ class Employee(models.Model):
 
     def clean(self):
         self.work_email = self.work_email.lower().strip()
+        self.manager_email = self.manager_email.lower().strip()
         if self.contract_end_date and self.contract_end_date < self.join_date:
             raise ValidationError('Contract end date cannot be earlier than the joining date.')
 

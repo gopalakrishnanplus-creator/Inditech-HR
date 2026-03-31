@@ -26,7 +26,7 @@ class AttendanceRecord(models.Model):
     def save(self, *args, **kwargs):
         self.employee_name = self.employee.full_name
         self.employment_type = self.employee.employment_type
-        self.reports_to_name = self.employee.manager.full_name if self.employee.manager else ''
+        self.reports_to_name = self.employee.manager_name
         if not self.attendance_date:
             self.attendance_date = timezone.localdate()
         super().save(*args, **kwargs)

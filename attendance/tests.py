@@ -20,6 +20,8 @@ class AttendanceSubmissionTests(TestCase):
             work_email='person@example.com',
             employment_type=Employee.EmploymentType.EMPLOYEE,
             department='Operations',
+            manager_name='External Manager',
+            manager_email='external.manager@example.com',
             designation='Coordinator',
             monthly_compensation='30000.00',
             annual_leave_allowance=12,
@@ -45,5 +47,6 @@ class AttendanceSubmissionTests(TestCase):
         record = AttendanceRecord.objects.get()
         self.assertEqual(record.attendance_date, timezone.localdate())
         self.assertEqual(record.employee_name, 'Test Person')
+        self.assertEqual(record.reports_to_name, 'External Manager')
 
 # Create your tests here.

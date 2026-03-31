@@ -5,9 +5,19 @@ from .models import ApprovedLeave, Employee, EmployeeContract, Holiday
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ('full_name', 'work_email', 'employment_type', 'department', 'monthly_compensation', 'contract_end_date', 'is_active')
+    list_display = (
+        'full_name',
+        'work_email',
+        'employment_type',
+        'department',
+        'manager_name',
+        'manager_email',
+        'monthly_compensation',
+        'contract_end_date',
+        'is_active',
+    )
     list_filter = ('employment_type', 'department', 'included_in_attendance', 'is_active')
-    search_fields = ('full_name', 'work_email', 'designation')
+    search_fields = ('full_name', 'work_email', 'designation', 'manager_name', 'manager_email')
 
 
 @admin.register(EmployeeContract)

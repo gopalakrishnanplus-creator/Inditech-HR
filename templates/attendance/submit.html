@@ -11,7 +11,7 @@
                 <div class="mb-4">
                     <div><strong>Name:</strong> {{ employee.full_name }}</div>
                     <div><strong>Type:</strong> {{ employee.get_employment_type_display }}</div>
-                    <div><strong>Reports to:</strong> {{ employee.manager.full_name|default:"Not assigned" }}</div>
+                    <div><strong>Reports to:</strong> {{ employee.manager_name|default:"Not assigned" }}</div>
                     <div><strong>Date:</strong> {{ today }}</div>
                 </div>
                 {% if today_record %}
