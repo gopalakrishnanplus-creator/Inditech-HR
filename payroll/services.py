@@ -4,12 +4,11 @@ from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from urllib.parse import urljoin
 
-import requests
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from accounts.models import RoleAssignment
+from accounts.emailing import send_sendgrid_email
 from accounts.services import normalize_email
 from attendance.models import AttendanceRecord
 from hr.models import ApprovedLeave, Employee, Holiday
@@ -192,45 +191,11 @@ def get_manager_approval_dashboard_link():
     return urljoin(base_url, 'payroll/manager-approval/')
 
 
-def get_active_hr_sender_email():
-    explicit_sender = normalize_email(os.environ.get('HR_MANAGER_FROM_EMAIL'))
-    if explicit_sender:
-        return explicit_sender
-
-    hr_assignment = RoleAssignment.objects.filter(role=RoleAssignment.Role.HR_MANAGER, active=True).order_by('created_at').first()
-    if hr_assignment:
-        return normalize_email(hr_assignment.email)
-    return ''
-
-
 def send_manager_payroll_approval_email(manager_name, manager_email, payroll_month):
-    sendgrid_api_key = os.environ.get('SENDGRID_API_KEY', '').strip()
-    sender_email = get_active_hr_sender_email()
-    if not sendgrid_api_key:
-        raise ValidationError('SENDGRID_API_KEY is not configured.')
-    if not sender_email:
-        raise ValidationError('No active HR manager email is configured for payroll approval emails.')
-
     month_name = payroll_month.strftime('%B')
     subject = f"Approve payroll for {manager_name}'s reportees. {month_name}, {payroll_month.year}"
     body = f"Approve the payroll for your reportees at this link - {get_manager_approval_dashboard_link()}"
-    payload = {
-        'personalizations': [{'to': [{'email': manager_email}]}],
-        'from': {'email': sender_email},
-        'subject': subject,
-        'content': [{'type': 'text/plain', 'value': body}],
-    }
-    response = requests.post(
-        'https://api.sendgrid.com/v3/mail/send',
-        json=payload,
-        headers={
-            'Authorization': f'Bearer {sendgrid_api_key}',
-            'Content-Type': 'application/json',
-        },
-        timeout=30,
-    )
-    if response.status_code >= 300:
-        raise ValidationError(f'SendGrid email failed for {manager_email}: {response.status_code} {response.text}')
+    send_sendgrid_email(manager_email, subject, body)
 
 
 def send_manager_payroll_approval_requests(reference_date=None, force=False):
