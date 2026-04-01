@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Manager Payroll Approval | Inditech HR{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Manager Payroll Approval</h1>
+        <p class="text-muted mb-0">{{ payroll_month|date:"F Y" }} reportees for {{ group.manager_name }}</p>
+    </div>
+    <a class="btn btn-outline-dark" href="{% url 'account_logout' %}">Logout</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Days Absent</th>
+                <th>Approved Leave Days</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in group.rows %}
+                <tr>
+                    <td>{{ row.employee.full_name }}</td>
+                    <td>{{ row.absent_days }}</td>
+                    <td>{{ row.approved_leave_days }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        {% if approval.approved_at %}
+            <div class="alert alert-success">
+                Submitted on {{ approval.approved_at }}{% if approval.approved_by %} by {{ approval.approved_by.email }}{% endif %}.
+            </div>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button class="btn btn-dark" type="submit">I approve the above information for payroll</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

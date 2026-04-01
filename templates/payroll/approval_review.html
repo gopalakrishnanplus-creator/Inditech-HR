@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll Review Before Processing | Inditech HR{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Review Payroll Data Before Processing</h1>
+        <p class="text-muted mb-0">{{ payroll_month|date:"F Y" }}</p>
+    </div>
+    <a class="btn btn-outline-dark" href="{% url 'payroll:generate' %}">Go to payroll generation</a>
+</div>
+
+{% for group in groups %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-body border-bottom">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+                <div>
+                    <h2 class="h5 mb-1">{{ group.manager_name }}</h2>
+                    <div class="text-muted">{{ group.manager_email|default:"No manager email configured" }}</div>
+                </div>
+                <div class="text-end">
+                    {% if group.manager_email and group.approval and group.approval.approved_at %}
+                        <div class="badge text-bg-success">Submitted</div>
+                        <div class="small text-muted mt-2">{{ group.approval.approved_at }}</div>
+                    {% elif group.manager_email %}
+                        <div class="badge text-bg-warning">Pending</div>
+                        <div class="small text-danger mt-2">This manager has not submitted the data yet.</div>
+                    {% else %}
+                        <div class="badge text-bg-danger">Action required</div>
+                        <div class="small text-danger mt-2">Manager details are missing for these reportees.</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% if group.approval and group.approval.comment %}
+                <div class="mt-3">
+                    <strong>Manager comment:</strong>
+                    <div class="text-muted">{{ group.approval.comment|linebreaksbr }}</div>
+                </div>
+            {% endif %}
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Days Absent</th>
+                    <th>Approved Leave Days</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in group.rows %}
+                    <tr>
+                        <td>{{ row.employee.full_name }}</td>
+                        <td>{{ row.absent_days }}</td>
+                        <td>{{ row.approved_leave_days }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% empty %}
+    <div class="alert alert-info">No payroll review data is available for the previous month.</div>
+{% endfor %}
+{% endblock %}

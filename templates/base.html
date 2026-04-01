@@ -29,6 +29,9 @@
                     <a class="btn btn-sm btn-outline-secondary" href="{% url 'attendance:submit' %}">Submit Attendance</a>
                     <a class="btn btn-sm btn-outline-secondary" href="{% url 'attendance:history' %}">Attendance History</a>
                 {% endif %}
+                {% if is_manager_payroll_approver and not hide_management_nav %}
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'payroll:manager-approval' %}">Manager Payroll Review</a>
+                {% endif %}
                 {% if is_system_admin and not hide_management_nav %}
                     <a class="btn btn-sm btn-outline-secondary" href="{% url 'accounts:role-list' %}">Roles</a>
                 {% endif %}

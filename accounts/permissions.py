@@ -34,6 +34,10 @@ class FinanceManagerRequiredMixin(RoleRequiredMixin):
     required_roles = ('finance_manager', 'hr_manager')
 
 
+class ManagerPayrollRequiredMixin(RoleRequiredMixin):
+    required_roles = ('manager_payroll_approver',)
+
+
 class EmployeeRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
         return get_user_employee(self.request.user) is not None

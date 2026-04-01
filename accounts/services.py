@@ -22,6 +22,8 @@ def get_role_names(user):
     roles.extend(
         RoleAssignment.objects.filter(email__iexact=email, active=True).values_list('role', flat=True)
     )
+    if Employee.objects.filter(manager_email__iexact=email).exists():
+        roles.append('manager_payroll_approver')
     return list(dict.fromkeys(roles))
 
 
@@ -55,6 +57,7 @@ def is_allowed_email(email):
     return (
         email in set(settings.SYSTEM_ADMIN_EMAILS)
         or Employee.objects.filter(work_email__iexact=email).exists()
+        or Employee.objects.filter(manager_email__iexact=email).exists()
         or RoleAssignment.objects.filter(email__iexact=email, active=True).exists()
     )
 

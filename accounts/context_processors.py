@@ -12,5 +12,6 @@ def role_context(request):
         'is_system_admin': 'system_admin' in roles,
         'is_hr_manager': 'system_admin' in roles or 'hr_manager' in roles,
         'is_finance_manager': 'system_admin' in roles or 'finance_manager' in roles or 'hr_manager' in roles,
+        'is_manager_payroll_approver': 'manager_payroll_approver' in roles,
         'current_employee': get_user_employee(user),
     }

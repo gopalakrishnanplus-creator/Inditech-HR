@@ -23,6 +23,31 @@ class PayrollRun(models.Model):
         return self.payroll_month.strftime('%B %Y')
 
 
+class ManagerPayrollApproval(models.Model):
+    payroll_month = models.DateField()
+    manager_name = models.CharField(max_length=255)
+    manager_email = models.EmailField()
+    comment = models.TextField(blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='manager_payroll_approvals',
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    notification_sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('-payroll_month', 'manager_name', 'manager_email')
+        unique_together = ('payroll_month', 'manager_email')
+
+    def __str__(self):
+        return f'{self.manager_name or self.manager_email} - {self.payroll_month.strftime("%B %Y")}'
+
+
 class PayrollEntry(models.Model):
     run = models.ForeignKey(PayrollRun, related_name='entries', on_delete=models.CASCADE)
     employee = models.ForeignKey(Employee, related_name='payroll_entries', on_delete=models.CASCADE)

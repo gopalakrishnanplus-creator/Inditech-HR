@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import PayrollEntry
+from .models import ManagerPayrollApproval, PayrollEntry
 
 
 class MonthInput(forms.DateInput):
@@ -21,4 +21,13 @@ class PayrollEntryDecisionForm(forms.ModelForm):
         fields = ['payment_decision']
         widgets = {
             'payment_decision': forms.Textarea(attrs={'rows': 4}),
+        }
+
+
+class ManagerPayrollApprovalForm(forms.ModelForm):
+    class Meta:
+        model = ManagerPayrollApproval
+        fields = ['comment']
+        widgets = {
+            'comment': forms.Textarea(attrs={'rows': 4}),
         }

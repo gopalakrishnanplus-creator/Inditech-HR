@@ -1,21 +1,32 @@
-from datetime import timedelta
+import os
+from collections import defaultdict
+from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
+from urllib.parse import urljoin
 
+import requests
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from accounts.models import RoleAssignment
+from accounts.services import normalize_email
 from attendance.models import AttendanceRecord
 from hr.models import ApprovedLeave, Employee, Holiday
 from hr.services import financial_year_bounds, get_working_dates, month_bounds
-from payroll.models import PayrollEntry, PayrollRun
+from payroll.models import ManagerPayrollApproval, PayrollEntry, PayrollRun
 
 
 TWOPLACES = Decimal('0.01')
+MANAGER_APPROVAL_EMAIL_START_DATE = date(2026, 5, 1)
 
 
 def quantize_money(value):
     return Decimal(value).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+
+
+def get_previous_month_start(reference_date):
+    return (reference_date.replace(day=1) - timedelta(days=1)).replace(day=1)
 
 
 def _approved_leave_dates(employee, start_date, end_date, holiday_dates):
@@ -53,6 +64,203 @@ def _employee_period_for_month(employee, payroll_month):
     else:
         period_end = month_end
     return period_start, period_end
+
+
+def get_payroll_employees_for_month(payroll_month):
+    month_start, month_end = month_bounds(payroll_month)
+    return Employee.objects.filter(
+        is_active=True,
+        join_date__lte=month_end,
+    ).exclude(contract_end_date__lt=month_start)
+
+
+def get_manager_group_key(employee):
+    manager_email = normalize_email(employee.manager_email)
+    manager_name = (employee.manager_name or '').strip()
+    if manager_email:
+        return manager_email, manager_name or manager_email
+    return '', manager_name or 'Manager not configured'
+
+
+def get_employee_monthly_approval_snapshot(employee, payroll_month):
+    period_start, period_end = _employee_period_for_month(employee, payroll_month)
+    if not period_start or not period_end:
+        return None
+
+    holiday_dates = set(Holiday.objects.filter(date__range=(period_start, period_end)).values_list('date', flat=True))
+    working_dates = set(get_working_dates(period_start, period_end, holiday_dates))
+    attendance_dates = _attendance_dates(employee, period_start, period_end)
+    approved_leave_dates = _approved_leave_dates(employee, period_start, period_end, holiday_dates)
+
+    approved_absence_dates = approved_leave_dates - attendance_dates
+    if employee.included_in_attendance:
+        absent_dates = working_dates - attendance_dates - approved_leave_dates
+    else:
+        absent_dates = set()
+
+    return {
+        'employee': employee,
+        'approved_leave_days': len(approved_absence_dates),
+        'absent_days': len(absent_dates),
+    }
+
+
+def get_manager_approval_groups(payroll_month):
+    approval_by_email = {
+        approval.manager_email: approval
+        for approval in ManagerPayrollApproval.objects.filter(payroll_month=payroll_month)
+    }
+    grouped_rows = defaultdict(list)
+    manager_names = {}
+    employees_without_manager = []
+
+    for employee in get_payroll_employees_for_month(payroll_month).order_by('full_name'):
+        snapshot = get_employee_monthly_approval_snapshot(employee, payroll_month)
+        if not snapshot:
+            continue
+
+        manager_email, manager_name = get_manager_group_key(employee)
+        if not manager_email:
+            employees_without_manager.append(snapshot)
+            continue
+
+        grouped_rows[manager_email].append(snapshot)
+        manager_names[manager_email] = manager_name
+
+    groups = []
+    for manager_email in sorted(grouped_rows):
+        groups.append(
+            {
+                'manager_email': manager_email,
+                'manager_name': manager_names.get(manager_email, manager_email),
+                'rows': grouped_rows[manager_email],
+                'approval': approval_by_email.get(manager_email),
+            }
+        )
+
+    if employees_without_manager:
+        groups.append(
+            {
+                'manager_email': '',
+                'manager_name': 'Manager not configured',
+                'rows': employees_without_manager,
+                'approval': None,
+            }
+        )
+
+    return groups
+
+
+def get_manager_group_for_email(manager_email, payroll_month):
+    manager_email = normalize_email(manager_email)
+    for group in get_manager_approval_groups(payroll_month):
+        if normalize_email(group['manager_email']) == manager_email:
+            return group
+    return None
+
+
+def validate_manager_approvals_for_month(payroll_month):
+    pending_groups = []
+    missing_manager_rows = []
+    for group in get_manager_approval_groups(payroll_month):
+        if not group['manager_email']:
+            missing_manager_rows.extend(group['rows'])
+            continue
+        if not group['approval'] or not group['approval'].approved_at:
+            pending_groups.append(group)
+
+    if missing_manager_rows:
+        employee_names = ', '.join(row['employee'].full_name for row in missing_manager_rows[:5])
+        if len(missing_manager_rows) > 5:
+            employee_names += ', ...'
+        raise ValidationError(f'Manager details are missing for: {employee_names}.')
+
+    if pending_groups:
+        manager_names = ', '.join(group['manager_name'] for group in pending_groups[:5])
+        if len(pending_groups) > 5:
+            manager_names += ', ...'
+        raise ValidationError(f'Manager payroll approvals are still pending from: {manager_names}.')
+
+
+def get_previous_month_label(reference_date):
+    previous_month = get_previous_month_start(reference_date)
+    return previous_month.strftime('%B'), previous_month.year
+
+
+def get_manager_approval_dashboard_link():
+    base_url = os.environ.get('APP_BASE_URL', 'http://127.0.0.1:8000').rstrip('/') + '/'
+    return urljoin(base_url, 'payroll/manager-approval/')
+
+
+def get_active_hr_sender_email():
+    explicit_sender = normalize_email(os.environ.get('HR_MANAGER_FROM_EMAIL'))
+    if explicit_sender:
+        return explicit_sender
+
+    hr_assignment = RoleAssignment.objects.filter(role=RoleAssignment.Role.HR_MANAGER, active=True).order_by('created_at').first()
+    if hr_assignment:
+        return normalize_email(hr_assignment.email)
+    return ''
+
+
+def send_manager_payroll_approval_email(manager_name, manager_email, payroll_month):
+    sendgrid_api_key = os.environ.get('SENDGRID_API_KEY', '').strip()
+    sender_email = get_active_hr_sender_email()
+    if not sendgrid_api_key:
+        raise ValidationError('SENDGRID_API_KEY is not configured.')
+    if not sender_email:
+        raise ValidationError('No active HR manager email is configured for payroll approval emails.')
+
+    month_name = payroll_month.strftime('%B')
+    subject = f"Approve payroll for {manager_name}'s reportees. {month_name}, {payroll_month.year}"
+    body = f"Approve the payroll for your reportees at this link - {get_manager_approval_dashboard_link()}"
+    payload = {
+        'personalizations': [{'to': [{'email': manager_email}]}],
+        'from': {'email': sender_email},
+        'subject': subject,
+        'content': [{'type': 'text/plain', 'value': body}],
+    }
+    response = requests.post(
+        'https://api.sendgrid.com/v3/mail/send',
+        json=payload,
+        headers={
+            'Authorization': f'Bearer {sendgrid_api_key}',
+            'Content-Type': 'application/json',
+        },
+        timeout=30,
+    )
+    if response.status_code >= 300:
+        raise ValidationError(f'SendGrid email failed for {manager_email}: {response.status_code} {response.text}')
+
+
+def send_manager_payroll_approval_requests(reference_date=None, force=False):
+    reference_date = reference_date or timezone.localdate()
+    if reference_date < MANAGER_APPROVAL_EMAIL_START_DATE and not force:
+        return 0
+    if reference_date.day != 1 and not force:
+        return 0
+
+    payroll_month = get_previous_month_start(reference_date)
+    sent_count = 0
+    for group in get_manager_approval_groups(payroll_month):
+        if not group['manager_email']:
+            continue
+
+        approval, _ = ManagerPayrollApproval.objects.get_or_create(
+            payroll_month=payroll_month,
+            manager_email=group['manager_email'],
+            defaults={'manager_name': group['manager_name']},
+        )
+        if approval.notification_sent_at and not force:
+            continue
+
+        approval.manager_name = group['manager_name']
+        send_manager_payroll_approval_email(group['manager_name'], group['manager_email'], payroll_month)
+        approval.notification_sent_at = timezone.now()
+        approval.save(update_fields=['manager_name', 'notification_sent_at', 'updated_at'])
+        sent_count += 1
+
+    return sent_count
 
 
 def calculate_payroll_for_employee(employee, payroll_month):
@@ -138,10 +346,10 @@ def generate_payroll_run(payroll_month, user):
     if today <= month_end:
         raise ValidationError('Payroll can only be generated after the selected month has completed.')
 
-    employees = Employee.objects.filter(
-        is_active=True,
-        join_date__lte=month_end,
-    ).exclude(contract_end_date__lt=month_start)
+    if month_start == get_previous_month_start(today):
+        validate_manager_approvals_for_month(month_start)
+
+    employees = get_payroll_employees_for_month(month_start)
 
     with transaction.atomic():
         run, created = PayrollRun.objects.get_or_create(
