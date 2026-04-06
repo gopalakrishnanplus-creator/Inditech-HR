@@ -208,3 +208,23 @@ class AttendanceNavigationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Company Holidays')
         self.assertContains(response, 'Founders Day')
+        self.assertNotContains(response, 'Add holiday')
+        self.assertNotContains(response, 'Edit')
+
+    def test_finance_manager_cannot_edit_holidays(self):
+        user = get_user_model().objects.create_user(
+            username='finance.only@example.com',
+            email='finance.only@example.com',
+            password='password123',
+        )
+        RoleAssignment.objects.create(
+            email='finance.only@example.com',
+            display_name='Finance Only',
+            role=RoleAssignment.Role.FINANCE_MANAGER,
+        )
+        holiday = Holiday.objects.create(name='Founders Day', date=date(2026, 4, 14))
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('hr:holiday-update', kwargs={'pk': holiday.pk}))
+
+        self.assertEqual(response.status_code, 403)

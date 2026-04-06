@@ -79,7 +79,7 @@ class HolidayListView(LoginRequiredMixin, ListView):
     context_object_name = 'holidays'
 
 
-class HolidayCreateView(FinanceManagerRequiredMixin, CreateView):
+class HolidayCreateView(HRManagerRequiredMixin, CreateView):
     model = Holiday
     form_class = HolidayForm
     template_name = 'hr/holiday_form.html'
@@ -90,7 +90,7 @@ class HolidayCreateView(FinanceManagerRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class HolidayUpdateView(FinanceManagerRequiredMixin, UpdateView):
+class HolidayUpdateView(HRManagerRequiredMixin, UpdateView):
     model = Holiday
     form_class = HolidayForm
     template_name = 'hr/holiday_form.html'

@@ -5,7 +5,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0">Company Holidays</h1>
-    <a class="btn btn-dark" href="{% url 'hr:holiday-create' %}">Add holiday</a>
+    {% if is_hr_manager %}
+        <a class="btn btn-dark" href="{% url 'hr:holiday-create' %}">Add holiday</a>
+    {% endif %}
 </div>
 
 <div class="card shadow-sm">
@@ -16,7 +18,9 @@
                 <th>Date</th>
                 <th>Name</th>
                 <th>Ad hoc</th>
-                <th></th>
+                {% if is_hr_manager %}
+                    <th></th>
+                {% endif %}
             </tr>
             </thead>
             <tbody>
@@ -25,10 +29,12 @@
                     <td>{{ holiday.date }}</td>
                     <td>{{ holiday.name }}</td>
                     <td>{{ holiday.is_ad_hoc|yesno:"Yes,No" }}</td>
-                    <td class="text-end"><a href="{% url 'hr:holiday-update' holiday.pk %}">Edit</a></td>
+                    {% if is_hr_manager %}
+                        <td class="text-end"><a href="{% url 'hr:holiday-update' holiday.pk %}">Edit</a></td>
+                    {% endif %}
                 </tr>
             {% empty %}
-                <tr><td colspan="4" class="text-center py-4">No holidays configured.</td></tr>
+                <tr><td colspan="{% if is_hr_manager %}4{% else %}3{% endif %}" class="text-center py-4">No holidays configured.</td></tr>
             {% endfor %}
             </tbody>
         </table>
