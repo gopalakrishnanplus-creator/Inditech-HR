@@ -20,12 +20,13 @@
                         <a class="btn btn-sm btn-outline-secondary" href="{% url 'hr:contract-list' %}">Contracts</a>
                     {% endif %}
                     {% if is_finance_manager %}
-                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'hr:holiday-list' %}">Holidays</a>
+                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'hr:holiday-list' %}">Company Holidays</a>
                         <a class="btn btn-sm btn-outline-secondary" href="{% url 'hr:leave-list' %}">Approved Leaves</a>
                         <a class="btn btn-sm btn-outline-secondary" href="{% url 'payroll:run-list' %}">Payroll</a>
                     {% endif %}
                 {% endif %}
                 {% if current_employee %}
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'hr:holiday-list' %}">Company Holidays</a>
                     <a class="btn btn-sm btn-outline-secondary" href="{% url 'attendance:submit' %}">Submit Attendance</a>
                     <a class="btn btn-sm btn-outline-secondary" href="{% url 'attendance:history' %}">Attendance History</a>
                 {% endif %}

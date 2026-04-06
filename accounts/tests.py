@@ -82,7 +82,7 @@ class HRManagerAccessTests(TestCase):
 
         self.assertContains(response, 'Payroll')
         self.assertContains(response, 'Approved Leaves')
-        self.assertContains(response, 'Holidays')
+        self.assertContains(response, 'Company Holidays')
 
     def test_hr_manager_can_open_payroll_run_list(self):
         response = self.client.get(reverse('payroll:run-list'))
@@ -180,4 +180,31 @@ class AttendanceNavigationTests(TestCase):
         self.assertNotContains(response, 'Contracts')
         self.assertNotContains(response, 'Payroll')
         self.assertNotContains(response, 'Approved Leaves')
+        self.assertContains(response, 'Company Holidays')
         self.assertContains(response, 'Submit Attendance')
+
+    def test_employee_can_open_company_holidays_list(self):
+        user = get_user_model().objects.create_user(
+            username='holiday.employee@example.com',
+            email='holiday.employee@example.com',
+            password='password123',
+        )
+        Employee.objects.create(
+            full_name='Holiday Employee',
+            work_email='holiday.employee@example.com',
+            employment_type=Employee.EmploymentType.EMPLOYEE,
+            department='Operations',
+            designation='Associate',
+            monthly_compensation='22000.00',
+            annual_leave_allowance=12,
+            monthly_leave_cap=1,
+            join_date='2026-01-01',
+        )
+        Holiday.objects.create(name='Founders Day', date=date(2026, 4, 14))
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('hr:holiday-list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Company Holidays')
+        self.assertContains(response, 'Founders Day')

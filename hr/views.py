@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http.response import HttpResponseRedirectBase
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, UpdateView
@@ -72,7 +73,7 @@ class EmployeeContractUpdateView(HRManagerRequiredMixin, UpdateView):
         return HttpResponseSeeOther(self.get_success_url())
 
 
-class HolidayListView(FinanceManagerRequiredMixin, ListView):
+class HolidayListView(LoginRequiredMixin, ListView):
     model = Holiday
     template_name = 'hr/holiday_list.html'
     context_object_name = 'holidays'
