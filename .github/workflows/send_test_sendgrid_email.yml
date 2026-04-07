@@ -1,0 +1,71 @@
+name: Send Test SendGrid Email
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipient:
+        description: Recipient email for the test message
+        required: true
+        default: gopala.krishnan@inditech.co.in
+      sender:
+        description: Optional sender override
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  send-test-email:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::736616688306:role/GitHubActionsInditechHRDeployRole
+          aws-region: ap-south-1
+
+      - name: Trigger test email command via SSM
+        run: |
+          RECIPIENT='${{ github.event.inputs.recipient }}'
+          SENDER='${{ github.event.inputs.sender }}'
+
+          if [ -n "$SENDER" ]; then
+            PYTHON_COMMAND="/var/www/.venv/bin/python manage.py send_test_sendgrid_email --recipient $RECIPIENT --sender $SENDER"
+          else
+            PYTHON_COMMAND="/var/www/.venv/bin/python manage.py send_test_sendgrid_email --recipient $RECIPIENT"
+          fi
+
+          PARAMETERS=$(printf '{"commands":["set -e","cd /var/www/Inditech-HR","%s"]}' "$PYTHON_COMMAND")
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "i-042b772db54dd2178" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Send test SendGrid email" \
+            --parameters "$PARAMETERS" \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID"
+
+          aws ssm wait command-executed \
+            --command-id $COMMAND_ID \
+            --instance-id i-042b772db54dd2178 || true
+
+          aws ssm list-command-invocations \
+            --command-id $COMMAND_ID \
+            --details
+
+          STATUS=$(aws ssm list-command-invocations \
+            --command-id $COMMAND_ID \
+            --query "CommandInvocations[0].Status" \
+            --output text)
+
+          echo "SSM Status: $STATUS"
+
+          if [ "$STATUS" != "Success" ]; then
+            echo "Test email send failed"
+            exit 1
+          fi
