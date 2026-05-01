@@ -10,10 +10,11 @@
 <body>
 <nav class="navbar navbar-expand-lg border-bottom bg-white">
     <div class="container py-2">
-        <a class="navbar-brand fw-semibold" href="{% if hide_management_nav and current_employee %}{% url 'attendance:submit' %}{% else %}{% url 'accounts:dashboard' %}{% endif %}">Inditech HR</a>
+        <a class="navbar-brand fw-semibold" href="{% if hide_all_nav %}#{% elif hide_management_nav and current_employee %}{% url 'attendance:submit' %}{% else %}{% url 'accounts:dashboard' %}{% endif %}">Inditech HR</a>
         <div class="d-flex flex-wrap gap-2 align-items-center">
             {% if user.is_authenticated %}
-                {% if not hide_management_nav %}
+                {% if hide_all_nav %}
+                {% elif not hide_management_nav %}
                     <a class="btn btn-sm btn-outline-secondary" href="{% url 'accounts:dashboard' %}">Dashboard</a>
                     {% if is_hr_manager %}
                         <a class="btn btn-sm btn-outline-secondary" href="{% url 'hr:employee-list' %}">Employees</a>

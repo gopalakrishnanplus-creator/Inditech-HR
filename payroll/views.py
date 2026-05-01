@@ -87,17 +87,23 @@ class ManagerPayrollApprovalDashboardView(ManagerPayrollRequiredMixin, LoginRequ
         self.payroll_month = get_previous_month_start(timezone.localdate())
         self.manager_email = normalize_email(request.user.email)
         self.group = get_manager_group_for_email(self.manager_email, self.payroll_month)
-        if not self.group:
-            messages.error(request, 'No payroll review items are assigned to this manager email for the previous month.')
-            return redirect('accounts:dashboard')
-        self.approval, _ = ManagerPayrollApproval.objects.get_or_create(
-            payroll_month=self.payroll_month,
-            manager_email=self.manager_email,
-            defaults={'manager_name': self.group['manager_name']},
-        )
+        self.approval = None
+        if self.group:
+            self.approval, _ = ManagerPayrollApproval.objects.get_or_create(
+                payroll_month=self.payroll_month,
+                manager_email=self.manager_email,
+                defaults={'manager_name': self.group['manager_name']},
+            )
         return super().dispatch(request, *args, **kwargs)
 
+    def get_form(self, form_class=None):
+        if not self.group:
+            return None
+        return super().get_form(form_class)
+
     def get_form_kwargs(self):
+        if not self.group:
+            return {}
         kwargs = super().get_form_kwargs()
         kwargs['instance'] = self.approval
         return kwargs
@@ -107,6 +113,7 @@ class ManagerPayrollApprovalDashboardView(ManagerPayrollRequiredMixin, LoginRequ
         context.update(
             {
                 'hide_management_nav': True,
+                'hide_all_nav': True,
                 'payroll_month': self.payroll_month,
                 'group': self.group,
                 'approval': self.approval,
@@ -115,6 +122,9 @@ class ManagerPayrollApprovalDashboardView(ManagerPayrollRequiredMixin, LoginRequ
         return context
 
     def form_valid(self, form):
+        if not self.group:
+            messages.error(self.request, 'No payroll review items are assigned to this manager email for the previous month.')
+            return redirect('payroll:manager-approval')
         approval = form.save(commit=False)
         approval.payroll_month = self.payroll_month
         approval.manager_email = self.manager_email

@@ -158,4 +158,20 @@ class ManagerPayrollApprovalViewTests(TestCase):
         self.assertContains(response, 'Manager Payroll Approval')
         self.assertContains(response, self.employee.full_name)
 
+    def test_manager_only_user_is_redirected_away_from_dashboard(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('accounts:dashboard'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('payroll:manager-approval'))
+
+    def test_manager_only_user_is_redirected_away_from_holiday_list(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('hr:holiday-list'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('payroll:manager-approval'))
+
 # Create your tests here.
