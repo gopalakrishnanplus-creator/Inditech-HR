@@ -5,6 +5,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.urls import reverse
 
 from accounts.models import RoleAssignment
 from attendance.models import AttendanceRecord
@@ -118,5 +119,43 @@ class PayrollServiceTests(TestCase):
         self.assertEqual(approval.manager_name, 'Manager One')
         self.assertIsNotNone(approval.notification_sent_at)
         mocked_send.assert_called_once_with('Manager One', 'manager.one@example.com', date(2026, 4, 1))
+
+
+class ManagerPayrollApprovalViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='manager.one@example.com',
+            email='manager.one@example.com',
+            password='password123',
+        )
+        self.employee = Employee.objects.create(
+            full_name='Reportee One',
+            work_email='reportee.one@example.com',
+            employment_type=Employee.EmploymentType.EMPLOYEE,
+            department='Operations',
+            manager_name='Manager One',
+            manager_email='manager.one@example.com',
+            designation='Analyst',
+            monthly_compensation='31000.00',
+            annual_leave_allowance=12,
+            monthly_leave_cap=1,
+            join_date=date(2026, 4, 1),
+        )
+
+    def test_manager_approval_link_redirects_anonymous_users_to_login(self):
+        response = self.client.get(reverse('payroll:manager-approval'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('accounts:landing'), response.url)
+
+    def test_manager_approval_page_renders_for_authorized_manager(self):
+        self.client.force_login(self.user)
+
+        with patch('payroll.views.timezone.localdate', return_value=date(2026, 5, 1)):
+            response = self.client.get(reverse('payroll:manager-approval'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Manager Payroll Approval')
+        self.assertContains(response, self.employee.full_name)
 
 # Create your tests here.

@@ -82,6 +82,8 @@ class ManagerPayrollApprovalDashboardView(ManagerPayrollRequiredMixin, LoginRequ
     success_url = reverse_lazy('payroll:manager-approval')
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
         self.payroll_month = get_previous_month_start(timezone.localdate())
         self.manager_email = normalize_email(request.user.email)
         self.group = get_manager_group_for_email(self.manager_email, self.payroll_month)
