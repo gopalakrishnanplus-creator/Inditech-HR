@@ -2,7 +2,7 @@ import os
 from collections import defaultdict
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
-from urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -186,15 +186,21 @@ def get_previous_month_label(reference_date):
     return previous_month.strftime('%B'), previous_month.year
 
 
-def get_manager_approval_dashboard_link():
+def get_manager_approval_dashboard_link(manager_email=None):
     base_url = os.environ.get('APP_BASE_URL', 'http://127.0.0.1:8000').rstrip('/') + '/'
-    return urljoin(base_url, 'payroll/manager-approval/')
+    url = urljoin(base_url, 'payroll/manager-approval/')
+    if manager_email:
+        return f'{url}?{urlencode({"manager_email": normalize_email(manager_email)})}'
+    return url
 
 
 def send_manager_payroll_approval_email(manager_name, manager_email, payroll_month):
     month_name = payroll_month.strftime('%B')
     subject = f"Approve payroll for {manager_name}'s reportees. {month_name}, {payroll_month.year}"
-    body = f"Approve the payroll for your reportees at this link - {get_manager_approval_dashboard_link()}"
+    body = (
+        "Approve the payroll for your reportees at this link - "
+        f"{get_manager_approval_dashboard_link(manager_email=manager_email)}"
+    )
     send_sendgrid_email(manager_email, subject, body)
 
 

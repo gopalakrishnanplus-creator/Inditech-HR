@@ -58,10 +58,17 @@
 {% else %}
     <div class="card shadow-sm">
         <div class="card-body p-4">
-            <div class="alert alert-warning mb-0">
-                No payroll review items are assigned to this signed-in email for {{ payroll_month|date:"F Y" }}.
-                Sign out and use the Google account that received the approval request, or ask HR to verify the manager email configured on the employee records.
-            </div>
+            {% if email_mismatch %}
+                <div class="alert alert-warning mb-0">
+                    This approval request was sent to <strong>{{ requested_manager_email }}</strong>, but you are signed in as
+                    <strong>{{ signed_in_manager_email }}</strong>. Sign out and use the Google account that received the approval request.
+                </div>
+            {% else %}
+                <div class="alert alert-warning mb-0">
+                    No payroll review items are assigned to <strong>{{ signed_in_manager_email }}</strong> for {{ payroll_month|date:"F Y" }}.
+                    If you expected reportees here, ask HR to verify the manager email configured on the employee records.
+                </div>
+            {% endif %}
         </div>
     </div>
 {% endif %}

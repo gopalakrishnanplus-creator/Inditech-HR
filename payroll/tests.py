@@ -13,7 +13,12 @@ from hr.models import ApprovedLeave, Employee
 from hr.services import get_working_dates
 
 from .models import ManagerPayrollApproval
-from .services import calculate_payroll_for_employee, generate_payroll_run, send_manager_payroll_approval_requests
+from .services import (
+    calculate_payroll_for_employee,
+    generate_payroll_run,
+    get_manager_approval_dashboard_link,
+    send_manager_payroll_approval_requests,
+)
 
 
 class PayrollServiceTests(TestCase):
@@ -120,6 +125,12 @@ class PayrollServiceTests(TestCase):
         self.assertIsNotNone(approval.notification_sent_at)
         mocked_send.assert_called_once_with('Manager One', 'manager.one@example.com', date(2026, 4, 1))
 
+    def test_manager_approval_link_includes_target_manager_email(self):
+        link = get_manager_approval_dashboard_link(manager_email='Manager.One@Example.com')
+
+        self.assertIn('/payroll/manager-approval/', link)
+        self.assertIn('manager_email=manager.one%40example.com', link)
+
 
 class ManagerPayrollApprovalViewTests(TestCase):
     def setUp(self):
@@ -173,5 +184,22 @@ class ManagerPayrollApprovalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse('payroll:manager-approval'))
+
+    def test_manager_approval_page_shows_email_mismatch_message(self):
+        other_user, _ = get_user_model().objects.get_or_create(
+            username='gopala.krishnan@inditech.co.in',
+            defaults={'email': 'gopala.krishnan@inditech.co.in'},
+        )
+        self.client.force_login(other_user)
+
+        with patch('payroll.views.timezone.localdate', return_value=date(2026, 5, 1)):
+            response = self.client.get(
+                f"{reverse('payroll:manager-approval')}?manager_email=manager.one@example.com"
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'This approval request was sent to')
+        self.assertContains(response, 'manager.one@example.com')
+        self.assertContains(response, 'gopala.krishnan@inditech.co.in')
 
 # Create your tests here.

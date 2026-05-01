@@ -86,12 +86,17 @@ class ManagerPayrollApprovalDashboardView(ManagerPayrollRequiredMixin, LoginRequ
             return self.handle_no_permission()
         self.payroll_month = get_previous_month_start(timezone.localdate())
         self.manager_email = normalize_email(request.user.email)
-        self.group = get_manager_group_for_email(self.manager_email, self.payroll_month)
+        self.requested_manager_email = normalize_email(request.GET.get('manager_email'))
+        self.email_mismatch = bool(
+            self.requested_manager_email and self.requested_manager_email != self.manager_email
+        )
+        effective_manager_email = self.requested_manager_email or self.manager_email
+        self.group = None if self.email_mismatch else get_manager_group_for_email(effective_manager_email, self.payroll_month)
         self.approval = None
         if self.group:
             self.approval, _ = ManagerPayrollApproval.objects.get_or_create(
                 payroll_month=self.payroll_month,
-                manager_email=self.manager_email,
+                manager_email=effective_manager_email,
                 defaults={'manager_name': self.group['manager_name']},
             )
         return super().dispatch(request, *args, **kwargs)
@@ -117,11 +122,20 @@ class ManagerPayrollApprovalDashboardView(ManagerPayrollRequiredMixin, LoginRequ
                 'payroll_month': self.payroll_month,
                 'group': self.group,
                 'approval': self.approval,
+                'signed_in_manager_email': self.manager_email,
+                'requested_manager_email': self.requested_manager_email,
+                'email_mismatch': self.email_mismatch,
             }
         )
         return context
 
     def form_valid(self, form):
+        if self.email_mismatch:
+            messages.error(
+                self.request,
+                'This approval request was opened with a different signed-in email address than the one it was sent to.',
+            )
+            return redirect('payroll:manager-approval')
         if not self.group:
             messages.error(self.request, 'No payroll review items are assigned to this manager email for the previous month.')
             return redirect('payroll:manager-approval')
