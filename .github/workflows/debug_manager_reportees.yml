@@ -1,0 +1,76 @@
+name: Debug Manager Reportees
+
+on:
+  workflow_dispatch:
+    inputs:
+      manager_name:
+        description: Manager name to inspect
+        required: true
+        default: Niomi Samani
+      employee_name:
+        description: Optional reportee name to inspect
+        required: false
+        default: Khushan Poptani
+      month:
+        description: Payroll month in YYYY-MM format
+        required: true
+        default: '2026-04'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  debug-reportees:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::736616688306:role/GitHubActionsInditechHRDeployRole
+          aws-region: ap-south-1
+
+      - name: Run manager reportee diagnostic via SSM
+        run: |
+          MANAGER_NAME='${{ github.event.inputs.manager_name }}'
+          EMPLOYEE_NAME='${{ github.event.inputs.employee_name }}'
+          MONTH='${{ github.event.inputs.month }}'
+
+          if [ -n "$EMPLOYEE_NAME" ]; then
+            PYTHON_COMMAND="/var/www/.venv/bin/python manage.py debug_manager_reportees --manager-name \"$MANAGER_NAME\" --employee-name \"$EMPLOYEE_NAME\" --month $MONTH"
+          else
+            PYTHON_COMMAND="/var/www/.venv/bin/python manage.py debug_manager_reportees --manager-name \"$MANAGER_NAME\" --month $MONTH"
+          fi
+
+          PARAMETERS=$(printf '{"commands":["set -e","cd /var/www/Inditech-HR","%s"]}' "$PYTHON_COMMAND")
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "i-042b772db54dd2178" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Debug manager reportees" \
+            --parameters "$PARAMETERS" \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID"
+
+          aws ssm wait command-executed \
+            --command-id $COMMAND_ID \
+            --instance-id i-042b772db54dd2178 || true
+
+          aws ssm list-command-invocations \
+            --command-id $COMMAND_ID \
+            --details
+
+          STATUS=$(aws ssm list-command-invocations \
+            --command-id $COMMAND_ID \
+            --query "CommandInvocations[0].Status" \
+            --output text)
+
+          echo "SSM Status: $STATUS"
+
+          if [ "$STATUS" != "Success" ]; then
+            echo "Manager reportee diagnostic failed"
+            exit 1
+          fi
