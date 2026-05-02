@@ -1,0 +1,81 @@
+name: Update Manager Identity
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_name:
+        description: Current incorrect manager name
+        required: true
+      from_email:
+        description: Current incorrect manager email
+        required: true
+      to_name:
+        description: Correct manager name
+        required: true
+      to_email:
+        description: Correct manager email
+        required: true
+      apply:
+        description: Set to true to update records; false runs a dry run
+        required: true
+        default: 'false'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  update-manager:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::736616688306:role/GitHubActionsInditechHRDeployRole
+          aws-region: ap-south-1
+
+      - name: Update manager identity via SSM
+        run: |
+          FROM_NAME='${{ github.event.inputs.from_name }}'
+          FROM_EMAIL='${{ github.event.inputs.from_email }}'
+          TO_NAME='${{ github.event.inputs.to_name }}'
+          TO_EMAIL='${{ github.event.inputs.to_email }}'
+          APPLY='${{ github.event.inputs.apply }}'
+
+          PYTHON_COMMAND="/var/www/.venv/bin/python manage.py update_manager_identity --from-name '$FROM_NAME' --from-email '$FROM_EMAIL' --to-name '$TO_NAME' --to-email '$TO_EMAIL'"
+          if [ "$APPLY" = "true" ]; then
+            PYTHON_COMMAND="$PYTHON_COMMAND --apply"
+          fi
+
+          PARAMETERS=$(jq -n --arg command "$PYTHON_COMMAND" '{commands:["set -e","cd /var/www/Inditech-HR",$command]}')
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "i-042b772db54dd2178" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Update manager identity" \
+            --parameters "$PARAMETERS" \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID"
+
+          aws ssm wait command-executed \
+            --command-id $COMMAND_ID \
+            --instance-id i-042b772db54dd2178 || true
+
+          aws ssm list-command-invocations \
+            --command-id $COMMAND_ID \
+            --details
+
+          STATUS=$(aws ssm list-command-invocations \
+            --command-id $COMMAND_ID \
+            --query "CommandInvocations[0].Status" \
+            --output text)
+
+          echo "SSM Status: $STATUS"
+
+          if [ "$STATUS" != "Success" ]; then
+            echo "Manager identity update failed"
+            exit 1
+          fi
