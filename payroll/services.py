@@ -68,7 +68,6 @@ def _employee_period_for_month(employee, payroll_month):
 def get_payroll_employees_for_month(payroll_month):
     month_start, month_end = month_bounds(payroll_month)
     return Employee.objects.filter(
-        is_active=True,
         join_date__lte=month_end,
     ).exclude(contract_end_date__lt=month_start)
 

@@ -17,6 +17,7 @@ from .services import (
     calculate_payroll_for_employee,
     generate_payroll_run,
     get_manager_approval_dashboard_link,
+    get_manager_approval_groups,
     send_manager_payroll_approval_requests,
 )
 
@@ -130,6 +131,29 @@ class PayrollServiceTests(TestCase):
 
         self.assertIn('/payroll/manager-approval/', link)
         self.assertIn('manager_email=manager.one%40example.com', link)
+
+    def test_recently_inactive_employee_with_month_overlap_is_included_in_manager_approval(self):
+        inactive_employee = Employee.objects.create(
+            full_name='Recently Inactive',
+            work_email='inactive@example.com',
+            employment_type=Employee.EmploymentType.EMPLOYEE,
+            department='Finance',
+            manager_name='Manager One',
+            manager_email='manager.one@example.com',
+            designation='Analyst',
+            monthly_compensation='25000.00',
+            annual_leave_allowance=12,
+            monthly_leave_cap=1,
+            join_date=date(2026, 1, 1),
+            contract_end_date=date(2026, 4, 20),
+            is_active=False,
+        )
+
+        groups = get_manager_approval_groups(date(2026, 4, 1))
+        manager_group = next(group for group in groups if group['manager_email'] == 'manager.one@example.com')
+        group_employee_names = {row['employee'].full_name for row in manager_group['rows']}
+
+        self.assertIn(inactive_employee.full_name, group_employee_names)
 
 
 class ManagerPayrollApprovalViewTests(TestCase):
