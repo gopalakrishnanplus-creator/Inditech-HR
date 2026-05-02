@@ -38,12 +38,12 @@ jobs:
           MONTH='${{ github.event.inputs.month }}'
 
           if [ -n "$EMPLOYEE_NAME" ]; then
-            PYTHON_COMMAND="/var/www/.venv/bin/python manage.py debug_manager_reportees --manager-name \"$MANAGER_NAME\" --employee-name \"$EMPLOYEE_NAME\" --month $MONTH"
+            PYTHON_COMMAND="/var/www/.venv/bin/python manage.py debug_manager_reportees --manager-name '$MANAGER_NAME' --employee-name '$EMPLOYEE_NAME' --month $MONTH"
           else
-            PYTHON_COMMAND="/var/www/.venv/bin/python manage.py debug_manager_reportees --manager-name \"$MANAGER_NAME\" --month $MONTH"
+            PYTHON_COMMAND="/var/www/.venv/bin/python manage.py debug_manager_reportees --manager-name '$MANAGER_NAME' --month $MONTH"
           fi
 
-          PARAMETERS=$(printf '{"commands":["set -e","cd /var/www/Inditech-HR","%s"]}' "$PYTHON_COMMAND")
+          PARAMETERS=$(jq -n --arg command "$PYTHON_COMMAND" '{commands:["set -e","cd /var/www/Inditech-HR",$command]}')
 
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-042b772db54dd2178" \
