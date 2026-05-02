@@ -150,6 +150,119 @@ class HRManagerAccessTests(TestCase):
 
 
 class AttendanceNavigationTests(TestCase):
+    def test_employee_manager_can_use_attendance_login_flow(self):
+        user = get_user_model().objects.create_user(
+            username='employee.manager@example.com',
+            email='employee.manager@example.com',
+            password='password123',
+        )
+        Employee.objects.create(
+            full_name='Employee Manager',
+            work_email='employee.manager@example.com',
+            employment_type=Employee.EmploymentType.EMPLOYEE,
+            department='Operations',
+            designation='Lead',
+            monthly_compensation='50000.00',
+            annual_leave_allowance=12,
+            monthly_leave_cap=1,
+            join_date='2026-01-01',
+        )
+        Employee.objects.create(
+            full_name='Reportee User',
+            work_email='reportee.user@example.com',
+            employment_type=Employee.EmploymentType.EMPLOYEE,
+            department='Operations',
+            designation='Associate',
+            monthly_compensation='30000.00',
+            annual_leave_allowance=12,
+            monthly_leave_cap=1,
+            join_date='2026-01-01',
+            manager_name='Employee Manager',
+            manager_email='employee.manager@example.com',
+        )
+        self.client.force_login(user)
+
+        login_response = self.client.get(reverse('accounts:attendance-login'))
+        self.assertRedirects(
+            login_response,
+            reverse('accounts:attendance-entry'),
+            fetch_redirect_response=False,
+        )
+
+        entry_response = self.client.get(reverse('accounts:attendance-entry'))
+        self.assertRedirects(entry_response, reverse('attendance:submit'))
+
+        submit_response = self.client.get(reverse('attendance:submit'))
+        self.assertEqual(submit_response.status_code, 200)
+        self.assertContains(submit_response, 'Submit Attendance')
+
+    def test_employee_manager_can_open_company_holidays(self):
+        user = get_user_model().objects.create_user(
+            username='holiday.manager@example.com',
+            email='holiday.manager@example.com',
+            password='password123',
+        )
+        Employee.objects.create(
+            full_name='Holiday Manager',
+            work_email='holiday.manager@example.com',
+            employment_type=Employee.EmploymentType.EMPLOYEE,
+            department='Operations',
+            designation='Lead',
+            monthly_compensation='50000.00',
+            annual_leave_allowance=12,
+            monthly_leave_cap=1,
+            join_date='2026-01-01',
+        )
+        Employee.objects.create(
+            full_name='Holiday Reportee',
+            work_email='holiday.reportee@example.com',
+            employment_type=Employee.EmploymentType.EMPLOYEE,
+            department='Operations',
+            designation='Associate',
+            monthly_compensation='30000.00',
+            annual_leave_allowance=12,
+            monthly_leave_cap=1,
+            join_date='2026-01-01',
+            manager_name='Holiday Manager',
+            manager_email='holiday.manager@example.com',
+        )
+        Holiday.objects.create(name='Founders Day', date=date(2026, 4, 14))
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('hr:holiday-list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Company Holidays')
+        self.assertContains(response, 'Founders Day')
+        self.assertNotContains(response, 'Add holiday')
+        self.assertNotContains(response, 'Edit')
+
+    def test_external_manager_remains_restricted_from_attendance_pages(self):
+        user = get_user_model().objects.create_user(
+            username='external.manager@example.com',
+            email='external.manager@example.com',
+            password='password123',
+        )
+        Employee.objects.create(
+            full_name='External Manager Reportee',
+            work_email='external.reportee@example.com',
+            employment_type=Employee.EmploymentType.EMPLOYEE,
+            department='Operations',
+            designation='Associate',
+            monthly_compensation='30000.00',
+            annual_leave_allowance=12,
+            monthly_leave_cap=1,
+            join_date='2026-01-01',
+            manager_name='External Manager',
+            manager_email='external.manager@example.com',
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('attendance:submit'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('payroll:manager-approval'))
+
     def test_attendance_pages_hide_management_buttons_for_mixed_role_user(self):
         user = get_user_model().objects.create_user(
             username='mixed.role@example.com',
