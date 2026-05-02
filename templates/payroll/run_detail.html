@@ -20,6 +20,7 @@
                 <th>Type</th>
                 <th>Department</th>
                 <th>Monthly pay</th>
+                <th>Active days</th>
                 <th>Working days</th>
                 <th>Paid leaves</th>
                 <th>LWP</th>
@@ -34,6 +35,7 @@
                     <td>{{ entry.employment_type }}</td>
                     <td>{{ entry.department }}</td>
                     <td>{{ entry.monthly_compensation }}</td>
+                    <td>{{ entry.active_calendar_days }}</td>
                     <td>{{ entry.working_days }}</td>
                     <td>{{ entry.approved_paid_leave_days }}</td>
                     <td>{{ entry.total_lwp_days }}</td>
@@ -41,7 +43,7 @@
                     <td class="text-end"><a href="{% url 'payroll:entry-update' entry.pk %}">Payment note</a></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="9" class="text-center py-4">No payroll entries were generated.</td></tr>
+                <tr><td colspan="10" class="text-center py-4">No payroll entries were generated.</td></tr>
             {% endfor %}
             </tbody>
         </table>

@@ -28,7 +28,6 @@ def get_attendance_reminder_target_date(reference_date=None):
 
 def get_missing_attendance_employees(target_date):
     employees = Employee.objects.filter(
-        is_active=True,
         included_in_attendance=True,
         join_date__lte=target_date,
     ).exclude(contract_end_date__lt=target_date)

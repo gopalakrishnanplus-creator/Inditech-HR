@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 
 class Employee(models.Model):
@@ -39,6 +40,24 @@ class Employee(models.Model):
         self.manager_email = self.manager_email.lower().strip()
         if self.contract_end_date and self.contract_end_date < self.join_date:
             raise ValidationError('Contract end date cannot be earlier than the joining date.')
+
+    def is_active_on(self, reference_date):
+        if reference_date < self.join_date:
+            return False
+        if self.contract_end_date and reference_date > self.contract_end_date:
+            return False
+        return True
+
+    @property
+    def is_currently_active(self):
+        return self.is_active_on(timezone.localdate())
+
+    def status_label_on(self, reference_date):
+        if reference_date < self.join_date:
+            return 'Upcoming'
+        if self.contract_end_date and reference_date > self.contract_end_date:
+            return 'Inactive'
+        return 'Active'
 
     @property
     def current_contract(self):

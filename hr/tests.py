@@ -3,6 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
+from .forms import EmployeeForm
 from .models import Employee, EmployeeContract
 
 
@@ -47,3 +48,10 @@ class EmployeeContractViewTests(TestCase):
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], reverse('hr:contract-list'))
         self.assertEqual(EmployeeContract.objects.count(), 1)
+
+
+class EmployeeFormTests(TestCase):
+    def test_employee_form_does_not_expose_manual_active_status_field(self):
+        form = EmployeeForm()
+
+        self.assertNotIn('is_active', form.fields)

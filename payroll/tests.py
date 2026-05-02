@@ -192,6 +192,7 @@ class ManagerPayrollApprovalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Manager Payroll Approval')
         self.assertContains(response, self.employee.full_name)
+        self.assertContains(response, 'Expected for full month')
 
     def test_manager_only_user_is_redirected_away_from_dashboard(self):
         self.client.force_login(self.user)
@@ -225,5 +226,17 @@ class ManagerPayrollApprovalViewTests(TestCase):
         self.assertContains(response, 'This approval request was sent to')
         self.assertContains(response, 'manager.one@example.com')
         self.assertContains(response, 'gopala.krishnan@inditech.co.in')
+
+    def test_manager_approval_page_shows_partial_month_availability_for_ended_contract(self):
+        self.client.force_login(self.user)
+        self.employee.contract_end_date = date(2026, 4, 17)
+        self.employee.save(update_fields=['contract_end_date'])
+
+        with patch('payroll.views.timezone.localdate', return_value=date(2026, 5, 1)):
+            response = self.client.get(reverse('payroll:manager-approval'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Expected through Apr 17')
+        self.assertContains(response, 'Apr 1 to Apr 17')
 
 # Create your tests here.

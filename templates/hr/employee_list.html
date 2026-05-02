@@ -21,6 +21,7 @@
                 <th>Manager Email</th>
                 <th>Monthly pay</th>
                 <th>Contract end</th>
+                <th>Status</th>
                 <th></th>
             </tr>
             </thead>
@@ -35,10 +36,11 @@
                     <td>{{ employee.manager_email|default:"-" }}</td>
                     <td>{{ employee.monthly_compensation }}</td>
                     <td>{{ employee.contract_end_date|default:"-" }}</td>
+                    <td>{{ employee.is_currently_active|yesno:"Active,Inactive" }}</td>
                     <td class="text-end"><a href="{% url 'hr:employee-update' employee.pk %}">Edit</a></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="9" class="text-center py-4">No employees added yet.</td></tr>
+                <tr><td colspan="10" class="text-center py-4">No employees added yet.</td></tr>
             {% endfor %}
             </tbody>
         </table>

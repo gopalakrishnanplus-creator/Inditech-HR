@@ -20,7 +20,7 @@ from .services import get_role_names, get_user_employee, sync_user_permissions
 
 def get_upcoming_contract_queryset(reference_date):
     return Employee.objects.filter(
-        is_active=True,
+        join_date__lte=reference_date,
         contract_end_date__range=(reference_date, reference_date + timedelta(days=30)),
     ).order_by('contract_end_date', 'full_name')
 
@@ -61,10 +61,9 @@ def get_attendance_summary_rows(month_key, reference_date):
     month_start, month_end, _ = get_attendance_period(month_key, reference_date)
     employees = list(
         Employee.objects.filter(
-            is_active=True,
             included_in_attendance=True,
             join_date__lte=month_end,
-        ).order_by('full_name')
+        ).exclude(contract_end_date__lt=month_start).order_by('full_name')
     )
     holiday_dates = set(Holiday.objects.filter(date__range=(month_start, month_end)).values_list('date', flat=True))
     attendance_by_employee = defaultdict(set)

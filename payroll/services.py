@@ -81,6 +81,7 @@ def get_manager_group_key(employee):
 
 
 def get_employee_monthly_approval_snapshot(employee, payroll_month):
+    month_start, month_end = month_bounds(payroll_month)
     period_start, period_end = _employee_period_for_month(employee, payroll_month)
     if not period_start or not period_end:
         return None
@@ -100,6 +101,16 @@ def get_employee_monthly_approval_snapshot(employee, payroll_month):
         'employee': employee,
         'approved_leave_days': len(approved_absence_dates),
         'absent_days': len(absent_dates),
+        'period_start': period_start,
+        'period_end': period_end,
+        'month_start': month_start,
+        'month_end': month_end,
+        'employment_status': employee.status_label_on(period_end),
+        'expected_availability_label': (
+            f'Expected through {period_end.strftime("%b")} {period_end.day}'
+            if period_end < month_end
+            else 'Expected for full month'
+        ),
     }
 
 

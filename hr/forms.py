@@ -24,7 +24,6 @@ class EmployeeForm(forms.ModelForm):
             'join_date',
             'contract_end_date',
             'included_in_attendance',
-            'is_active',
             'notes',
         ]
         widgets = {

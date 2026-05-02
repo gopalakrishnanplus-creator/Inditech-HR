@@ -8,6 +8,10 @@
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h1 class="h4 mb-3">Employee record</h1>
+                <div class="alert alert-light border">
+                    Current active/inactive status is calculated automatically from joining date and contract end date.
+                    To mark a person as no longer active, update the contract end date accordingly.
+                </div>
                 <form method="post">
                     {% csrf_token %}
                     {{ form.as_p }}

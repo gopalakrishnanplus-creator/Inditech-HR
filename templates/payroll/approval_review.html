@@ -44,6 +44,7 @@
                 <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Expected Availability</th>
                     <th>Days Absent</th>
                     <th>Approved Leave Days</th>
                 </tr>
@@ -52,6 +53,14 @@
                 {% for row in group.rows %}
                     <tr>
                         <td>{{ row.employee.full_name }}</td>
+                        <td>
+                            {{ row.expected_availability_label }}
+                            {% if row.period_end < row.month_end %}
+                                <div class="small text-muted">{{ row.period_start|date:"M j" }} to {{ row.period_end|date:"M j" }}</div>
+                            {% else %}
+                                <div class="small text-muted">{{ row.period_start|date:"M j" }} to {{ row.month_end|date:"M j" }}</div>
+                            {% endif %}
+                        </td>
                         <td>{{ row.absent_days }}</td>
                         <td>{{ row.approved_leave_days }}</td>
                     </tr>

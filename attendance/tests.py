@@ -108,4 +108,36 @@ class AttendanceReminderTests(TestCase):
         self.assertEqual(sent_count, 0)
         mocked_send.assert_not_called()
 
+    @patch('attendance.services.send_attendance_reminder_email')
+    def test_daily_reminders_include_employee_active_on_target_date_even_if_currently_inactive(self, mocked_send):
+        AttendanceRecord.objects.create(
+            employee=self.employee_submitted,
+            attendance_date=date(2026, 4, 1),
+            employee_name=self.employee_submitted.full_name,
+            employment_type=self.employee_submitted.employment_type,
+            reports_to_name=self.employee_submitted.manager_name,
+            work_summary='Worked',
+        )
+        recently_inactive = Employee.objects.create(
+            full_name='Recently Inactive',
+            work_email='recently.inactive@example.com',
+            employment_type=Employee.EmploymentType.EMPLOYEE,
+            department='Operations',
+            manager_name='Manager',
+            manager_email='manager@example.com',
+            designation='Executive',
+            monthly_compensation='25000.00',
+            annual_leave_allowance=12,
+            monthly_leave_cap=1,
+            join_date='2026-03-01',
+            contract_end_date=date(2026, 4, 1),
+            is_active=False,
+        )
+
+        sent_count = send_daily_attendance_reminders(reference_date=date(2026, 4, 2))
+
+        self.assertEqual(sent_count, 2)
+        mocked_send.assert_any_call(self.employee_missing)
+        mocked_send.assert_any_call(recently_inactive)
+
 # Create your tests here.
