@@ -22,6 +22,7 @@
                 <th>Monthly pay</th>
                 <th>Active days</th>
                 <th>Working days</th>
+                <th>Approved days</th>
                 <th>Paid leaves</th>
                 <th>LWP</th>
                 <th>Net payable</th>
@@ -37,13 +38,18 @@
                     <td>{{ entry.monthly_compensation }}</td>
                     <td>{{ entry.active_calendar_days }}</td>
                     <td>{{ entry.working_days }}</td>
+                    <td>
+                        Leave {{ entry.approved_leave_days }},
+                        Exception {{ entry.approved_exception_days }},
+                        Comp-off {{ entry.approved_comp_off_days }}
+                    </td>
                     <td>{{ entry.approved_paid_leave_days }}</td>
                     <td>{{ entry.total_lwp_days }}</td>
                     <td>{{ entry.net_payable }}</td>
                     <td class="text-end"><a href="{% url 'payroll:entry-update' entry.pk %}">Payment note</a></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="10" class="text-center py-4">No payroll entries were generated.</td></tr>
+                <tr><td colspan="11" class="text-center py-4">No payroll entries were generated.</td></tr>
             {% endfor %}
             </tbody>
         </table>

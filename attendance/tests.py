@@ -68,7 +68,10 @@ class AttendanceSubmissionTests(TestCase):
         )
 
         self.assertEqual(AttendanceRecord.objects.count(), 0)
-        self.assertContains(response, 'You cannot fill in attendance for today because you are on approved leave.')
+        self.assertContains(
+            response,
+            'You cannot fill in attendance for today because an approved leave, exception approval, or comp-off already exists for today.',
+        )
 
 
 class AttendanceReminderTests(TestCase):

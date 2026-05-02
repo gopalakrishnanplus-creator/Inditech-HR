@@ -57,7 +57,7 @@ class HolidayForm(forms.ModelForm):
 class ApprovedLeaveForm(forms.ModelForm):
     class Meta:
         model = ApprovedLeave
-        fields = ['employee', 'start_date', 'end_date', 'notes']
+        fields = ['employee', 'leave_type', 'start_date', 'end_date', 'notes']
         widgets = {
             'start_date': DateInput(),
             'end_date': DateInput(),

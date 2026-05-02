@@ -29,7 +29,11 @@ def get_previous_month_start(reference_date):
 
 
 def _approved_leave_dates(employee, start_date, end_date, holiday_dates):
-    leave_dates = set()
+    leave_dates_by_type = {
+        ApprovedLeave.LeaveType.REGULAR_LEAVE: set(),
+        ApprovedLeave.LeaveType.EXCEPTION_APPROVAL: set(),
+        ApprovedLeave.LeaveType.COMP_OFF: set(),
+    }
     qs = ApprovedLeave.objects.filter(
         employee=employee,
         start_date__lte=end_date,
@@ -38,8 +42,10 @@ def _approved_leave_dates(employee, start_date, end_date, holiday_dates):
     for approved_leave in qs:
         overlap_start = max(start_date, approved_leave.start_date)
         overlap_end = min(end_date, approved_leave.end_date)
-        leave_dates.update(get_working_dates(overlap_start, overlap_end, holiday_dates))
-    return leave_dates
+        leave_dates_by_type[approved_leave.leave_type].update(
+            get_working_dates(overlap_start, overlap_end, holiday_dates)
+        )
+    return leave_dates_by_type
 
 
 def _attendance_dates(employee, start_date, end_date):
@@ -93,19 +99,26 @@ def get_employee_monthly_approval_snapshot(employee, payroll_month):
     holiday_dates = set(Holiday.objects.filter(date__range=(period_start, period_end)).values_list('date', flat=True))
     working_dates = set(get_working_dates(period_start, period_end, holiday_dates))
     attendance_dates = _attendance_dates(employee, period_start, period_end)
-    approved_leave_dates = _approved_leave_dates(employee, period_start, period_end, holiday_dates)
-    effective_attendance_dates = _effective_attendance_dates(attendance_dates, approved_leave_dates)
+    approved_dates_by_type = _approved_leave_dates(employee, period_start, period_end, holiday_dates)
+    regular_leave_dates = approved_dates_by_type[ApprovedLeave.LeaveType.REGULAR_LEAVE]
+    exception_dates = approved_dates_by_type[ApprovedLeave.LeaveType.EXCEPTION_APPROVAL]
+    comp_off_dates = approved_dates_by_type[ApprovedLeave.LeaveType.COMP_OFF]
+    approved_non_attendance_dates = regular_leave_dates | exception_dates | comp_off_dates
+    effective_attendance_dates = _effective_attendance_dates(attendance_dates, approved_non_attendance_dates)
 
     if employee.included_in_attendance:
         days_without_attendance = working_dates - effective_attendance_dates
-        unapproved_absence_dates = days_without_attendance - approved_leave_dates
+        unapproved_absence_dates = days_without_attendance - approved_non_attendance_dates
     else:
         days_without_attendance = set()
         unapproved_absence_dates = set()
 
     return {
         'employee': employee,
-        'approved_leave_days': len(approved_leave_dates),
+        'approved_leave_days': len(regular_leave_dates),
+        'approved_exception_days': len(exception_dates),
+        'approved_comp_off_days': len(comp_off_dates),
+        'approved_non_attendance_days': len(approved_non_attendance_dates),
         'days_without_attendance': len(days_without_attendance),
         'unapproved_absent_days': len(unapproved_absence_dates),
         'period_start': period_start,
@@ -260,11 +273,15 @@ def calculate_payroll_for_employee(employee, payroll_month):
     holiday_dates = set(Holiday.objects.filter(date__range=(period_start, period_end)).values_list('date', flat=True))
     working_dates = set(get_working_dates(period_start, period_end, holiday_dates))
     attendance_dates = _attendance_dates(employee, period_start, period_end)
-    approved_leave_dates = _approved_leave_dates(employee, period_start, period_end, holiday_dates)
-    effective_attendance_dates = _effective_attendance_dates(attendance_dates, approved_leave_dates)
+    approved_dates_by_type = _approved_leave_dates(employee, period_start, period_end, holiday_dates)
+    regular_leave_dates = approved_dates_by_type[ApprovedLeave.LeaveType.REGULAR_LEAVE]
+    exception_dates = approved_dates_by_type[ApprovedLeave.LeaveType.EXCEPTION_APPROVAL]
+    comp_off_dates = approved_dates_by_type[ApprovedLeave.LeaveType.COMP_OFF]
+    approved_non_attendance_dates = regular_leave_dates | exception_dates | comp_off_dates
+    effective_attendance_dates = _effective_attendance_dates(attendance_dates, approved_non_attendance_dates)
 
     if employee.included_in_attendance:
-        unapproved_absence_dates = working_dates - effective_attendance_dates - approved_leave_dates
+        unapproved_absence_dates = working_dates - effective_attendance_dates - approved_non_attendance_dates
         present_days = len(working_dates.intersection(effective_attendance_dates))
     else:
         unapproved_absence_dates = set()
@@ -280,11 +297,13 @@ def calculate_payroll_for_employee(employee, payroll_month):
         else:
             prior_period_end = min(prior_end, employee.contract_end_date or prior_end)
             prior_holidays = set(Holiday.objects.filter(date__range=(prior_start, prior_period_end)).values_list('date', flat=True))
-            prior_approved_dates = _approved_leave_dates(employee, prior_start, prior_period_end, prior_holidays)
-            prior_approved_count = len(prior_approved_dates)
+            prior_approved_dates_by_type = _approved_leave_dates(employee, prior_start, prior_period_end, prior_holidays)
+            prior_approved_count = len(prior_approved_dates_by_type[ApprovedLeave.LeaveType.REGULAR_LEAVE])
 
     annual_remaining = max(employee.annual_leave_allowance - prior_approved_count, 0)
-    approved_leave_days = len(approved_leave_dates)
+    approved_leave_days = len(regular_leave_dates)
+    approved_exception_days = len(exception_dates)
+    approved_comp_off_days = len(comp_off_dates)
     approved_paid_leave_days = min(approved_leave_days, employee.monthly_leave_cap, annual_remaining)
     approved_lwp_days = max(approved_leave_days - approved_paid_leave_days, 0)
     unapproved_lwp_days = len(unapproved_absence_dates)
@@ -316,6 +335,8 @@ def calculate_payroll_for_employee(employee, payroll_month):
         'holidays_in_month': len(holiday_dates),
         'present_days': present_days,
         'approved_leave_days': approved_leave_days,
+        'approved_exception_days': approved_exception_days,
+        'approved_comp_off_days': approved_comp_off_days,
         'approved_paid_leave_days': approved_paid_leave_days,
         'approved_lwp_days': approved_lwp_days,
         'unapproved_lwp_days': unapproved_lwp_days,

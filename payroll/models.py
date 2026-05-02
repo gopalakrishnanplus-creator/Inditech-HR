@@ -67,6 +67,8 @@ class PayrollEntry(models.Model):
     holidays_in_month = models.PositiveIntegerField(default=0)
     present_days = models.PositiveIntegerField(default=0)
     approved_leave_days = models.PositiveIntegerField(default=0)
+    approved_exception_days = models.PositiveIntegerField(default=0)
+    approved_comp_off_days = models.PositiveIntegerField(default=0)
     approved_paid_leave_days = models.PositiveIntegerField(default=0)
     approved_lwp_days = models.PositiveIntegerField(default=0)
     unapproved_lwp_days = models.PositiveIntegerField(default=0)

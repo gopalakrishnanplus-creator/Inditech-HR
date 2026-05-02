@@ -114,7 +114,13 @@ class Holiday(models.Model):
 
 
 class ApprovedLeave(models.Model):
+    class LeaveType(models.TextChoices):
+        REGULAR_LEAVE = 'regular_leave', 'Leave'
+        EXCEPTION_APPROVAL = 'exception_approval', 'Exception approval'
+        COMP_OFF = 'comp_off', 'Comp-off'
+
     employee = models.ForeignKey(Employee, related_name='approved_leaves', on_delete=models.CASCADE)
+    leave_type = models.CharField(max_length=32, choices=LeaveType.choices, default=LeaveType.REGULAR_LEAVE)
     start_date = models.DateField()
     end_date = models.DateField()
     notes = models.TextField(blank=True)
@@ -132,7 +138,7 @@ class ApprovedLeave(models.Model):
         ordering = ('-start_date', 'employee__full_name')
 
     def __str__(self):
-        return f'{self.employee.full_name}: {self.start_date} to {self.end_date}'
+        return f'{self.employee.full_name}: {self.get_leave_type_display()} {self.start_date} to {self.end_date}'
 
     def clean(self):
         if self.end_date < self.start_date:

@@ -188,6 +188,53 @@ class PayrollServiceTests(TestCase):
         self.assertEqual(snapshot['days_without_attendance'], 1)
         self.assertEqual(snapshot['approved_leave_days'], 1)
 
+    def test_exception_and_comp_off_do_not_consume_leave_or_create_lwp(self):
+        payroll_month = date(2026, 4, 1)
+        exception_date = date(2026, 4, 3)
+        comp_off_date = date(2026, 4, 4)
+        working_dates = get_working_dates(date(2026, 4, 1), date(2026, 4, 30), set())
+
+        for working_date in working_dates:
+            if working_date in {exception_date, comp_off_date}:
+                continue
+            AttendanceRecord.objects.create(
+                employee=self.employee,
+                attendance_date=working_date,
+                employee_name=self.employee.full_name,
+                employment_type=self.employee.employment_type,
+                reports_to_name=self.employee.manager_name,
+                work_summary='Worked',
+            )
+
+        ApprovedLeave.objects.create(
+            employee=self.employee,
+            leave_type=ApprovedLeave.LeaveType.EXCEPTION_APPROVAL,
+            start_date=exception_date,
+            end_date=exception_date,
+            approved_by=self.finance_user,
+        )
+        ApprovedLeave.objects.create(
+            employee=self.employee,
+            leave_type=ApprovedLeave.LeaveType.COMP_OFF,
+            start_date=comp_off_date,
+            end_date=comp_off_date,
+            approved_by=self.finance_user,
+        )
+
+        result = calculate_payroll_for_employee(self.employee, payroll_month)
+        snapshot = get_employee_monthly_approval_snapshot(self.employee, payroll_month)
+
+        self.assertEqual(result['approved_leave_days'], 0)
+        self.assertEqual(result['approved_exception_days'], 1)
+        self.assertEqual(result['approved_comp_off_days'], 1)
+        self.assertEqual(result['approved_paid_leave_days'], 0)
+        self.assertEqual(result['approved_lwp_days'], 0)
+        self.assertEqual(result['total_lwp_days'], 0)
+        self.assertEqual(snapshot['approved_non_attendance_days'], 2)
+        self.assertEqual(snapshot['approved_leave_days'], 0)
+        self.assertEqual(snapshot['approved_exception_days'], 1)
+        self.assertEqual(snapshot['approved_comp_off_days'], 1)
+
 
 class ManagerPayrollApprovalViewTests(TestCase):
     def setUp(self):
@@ -227,6 +274,7 @@ class ManagerPayrollApprovalViewTests(TestCase):
         self.assertContains(response, self.employee.full_name)
         self.assertContains(response, 'Expected for full month')
         self.assertContains(response, 'Days Without Attendance')
+        self.assertContains(response, 'Approved Days')
 
     def test_manager_only_user_is_redirected_away_from_dashboard(self):
         self.client.force_login(self.user)

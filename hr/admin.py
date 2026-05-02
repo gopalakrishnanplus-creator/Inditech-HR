@@ -36,7 +36,8 @@ class HolidayAdmin(admin.ModelAdmin):
 
 @admin.register(ApprovedLeave)
 class ApprovedLeaveAdmin(admin.ModelAdmin):
-    list_display = ('employee', 'start_date', 'end_date', 'approved_by')
+    list_display = ('employee', 'leave_type', 'start_date', 'end_date', 'approved_by')
+    list_filter = ('leave_type',)
     search_fields = ('employee__full_name',)
 
 # Register your models here.

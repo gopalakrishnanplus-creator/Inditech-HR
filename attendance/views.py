@@ -39,7 +39,10 @@ class AttendanceSubmitView(EmployeeRequiredMixin, FormView):
 
     def form_valid(self, form):
         if self.approved_leave_today:
-            messages.error(self.request, 'You cannot fill in attendance for today because you are on approved leave.')
+            messages.error(
+                self.request,
+                'You cannot fill in attendance for today because an approved leave, exception approval, or comp-off already exists for today.',
+            )
             return redirect(self.success_url)
         if self.today_record:
             messages.error(self.request, 'Attendance has already been submitted for today.')

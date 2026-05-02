@@ -46,7 +46,7 @@
                     <th>Name</th>
                     <th>Expected Availability</th>
                     <th>Days Without Attendance</th>
-                    <th>Approved Leave Days</th>
+                    <th>Approved Days</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -62,7 +62,14 @@
                             {% endif %}
                         </td>
                         <td>{{ row.days_without_attendance }}</td>
-                        <td>{{ row.approved_leave_days }}</td>
+                        <td>
+                            {{ row.approved_non_attendance_days }}
+                            <div class="small text-muted">
+                                Leave {{ row.approved_leave_days }} |
+                                Exception {{ row.approved_exception_days }} |
+                                Comp-off {{ row.approved_comp_off_days }}
+                            </div>
+                        </td>
                     </tr>
                 {% endfor %}
                 </tbody>
