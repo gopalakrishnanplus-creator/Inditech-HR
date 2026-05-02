@@ -18,6 +18,7 @@ from .services import (
     generate_payroll_run,
     get_manager_approval_dashboard_link,
     get_manager_approval_groups,
+    get_employee_monthly_approval_snapshot,
     send_manager_payroll_approval_requests,
 )
 
@@ -155,6 +156,38 @@ class PayrollServiceTests(TestCase):
 
         self.assertIn(inactive_employee.full_name, group_employee_names)
 
+    def test_approved_leave_ignores_attendance_for_payroll_and_manager_review(self):
+        payroll_month = date(2026, 4, 1)
+        leave_date = date(2026, 4, 3)
+        working_dates = get_working_dates(date(2026, 4, 1), date(2026, 4, 30), set())
+
+        for working_date in working_dates:
+            AttendanceRecord.objects.create(
+                employee=self.employee,
+                attendance_date=working_date,
+                employee_name=self.employee.full_name,
+                employment_type=self.employee.employment_type,
+                reports_to_name=self.employee.manager_name,
+                work_summary='Worked',
+            )
+
+        ApprovedLeave.objects.create(
+            employee=self.employee,
+            start_date=leave_date,
+            end_date=leave_date,
+            approved_by=self.finance_user,
+        )
+
+        result = calculate_payroll_for_employee(self.employee, payroll_month)
+        snapshot = get_employee_monthly_approval_snapshot(self.employee, payroll_month)
+
+        self.assertEqual(result['approved_leave_days'], 1)
+        self.assertEqual(result['present_days'], len(working_dates) - 1)
+        self.assertEqual(result['approved_paid_leave_days'], 1)
+        self.assertEqual(result['total_lwp_days'], 0)
+        self.assertEqual(snapshot['days_without_attendance'], 1)
+        self.assertEqual(snapshot['approved_leave_days'], 1)
+
 
 class ManagerPayrollApprovalViewTests(TestCase):
     def setUp(self):
@@ -193,6 +226,7 @@ class ManagerPayrollApprovalViewTests(TestCase):
         self.assertContains(response, 'Manager Payroll Approval')
         self.assertContains(response, self.employee.full_name)
         self.assertContains(response, 'Expected for full month')
+        self.assertContains(response, 'Days Without Attendance')
 
     def test_manager_only_user_is_redirected_away_from_dashboard(self):
         self.client.force_login(self.user)

@@ -9,6 +9,7 @@ from accounts.services import get_user_employee
 
 from .forms import AttendanceSubmissionForm
 from .models import AttendanceRecord
+from .services import has_approved_leave_on_date
 
 
 class AttendanceSubmitView(EmployeeRequiredMixin, FormView):
@@ -20,6 +21,7 @@ class AttendanceSubmitView(EmployeeRequiredMixin, FormView):
         self.employee = get_user_employee(request.user)
         self.today = timezone.localdate()
         self.today_record = AttendanceRecord.objects.filter(employee=self.employee, attendance_date=self.today).first()
+        self.approved_leave_today = has_approved_leave_on_date(self.employee, self.today)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -30,11 +32,15 @@ class AttendanceSubmitView(EmployeeRequiredMixin, FormView):
                 'employee': self.employee,
                 'today': self.today,
                 'today_record': self.today_record,
+                'approved_leave_today': self.approved_leave_today,
             }
         )
         return context
 
     def form_valid(self, form):
+        if self.approved_leave_today:
+            messages.error(self.request, 'You cannot fill in attendance for today because you are on approved leave.')
+            return redirect(self.success_url)
         if self.today_record:
             messages.error(self.request, 'Attendance has already been submitted for today.')
             return redirect(self.success_url)

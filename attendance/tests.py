@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from hr.models import Employee, Holiday
+from hr.models import ApprovedLeave, Employee, Holiday
 
 from .models import AttendanceRecord
 from .services import send_daily_attendance_reminders
@@ -52,6 +52,23 @@ class AttendanceSubmissionTests(TestCase):
         self.assertEqual(record.attendance_date, timezone.localdate())
         self.assertEqual(record.employee_name, 'Test Person')
         self.assertEqual(record.reports_to_name, 'External Manager')
+
+    def test_employee_cannot_submit_attendance_on_approved_leave_day(self):
+        ApprovedLeave.objects.create(
+            employee=self.employee,
+            start_date=timezone.localdate(),
+            end_date=timezone.localdate(),
+            notes='Approved leave',
+        )
+
+        response = self.client.post(
+            reverse('attendance:submit'),
+            {'work_summary': 'Attempted submission on approved leave.'},
+            follow=True,
+        )
+
+        self.assertEqual(AttendanceRecord.objects.count(), 0)
+        self.assertContains(response, 'You cannot fill in attendance for today because you are on approved leave.')
 
 
 class AttendanceReminderTests(TestCase):

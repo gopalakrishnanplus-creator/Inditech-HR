@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from accounts.emailing import send_sendgrid_email
-from hr.models import Employee, Holiday
+from hr.models import ApprovedLeave, Employee, Holiday
 from hr.services import is_working_day
 
 from .models import AttendanceRecord
@@ -27,14 +27,28 @@ def get_attendance_reminder_target_date(reference_date=None):
 
 
 def get_missing_attendance_employees(target_date):
+    approved_leave_employee_ids = set(
+        ApprovedLeave.objects.filter(
+            start_date__lte=target_date,
+            end_date__gte=target_date,
+        ).values_list('employee_id', flat=True)
+    )
     employees = Employee.objects.filter(
         included_in_attendance=True,
         join_date__lte=target_date,
-    ).exclude(contract_end_date__lt=target_date)
+    ).exclude(contract_end_date__lt=target_date).exclude(pk__in=approved_leave_employee_ids)
     submitted_employee_ids = set(
         AttendanceRecord.objects.filter(attendance_date=target_date).values_list('employee_id', flat=True)
     )
     return employees.exclude(pk__in=submitted_employee_ids).order_by('full_name')
+
+
+def has_approved_leave_on_date(employee, target_date):
+    return ApprovedLeave.objects.filter(
+        employee=employee,
+        start_date__lte=target_date,
+        end_date__gte=target_date,
+    ).exists()
 
 
 def send_attendance_reminder_email(employee):

@@ -51,6 +51,10 @@ def _attendance_dates(employee, start_date, end_date):
     )
 
 
+def _effective_attendance_dates(attendance_dates, approved_leave_dates):
+    return attendance_dates - approved_leave_dates
+
+
 def _employee_period_for_month(employee, payroll_month):
     month_start, month_end = month_bounds(payroll_month)
     if employee.join_date > month_end:
@@ -90,17 +94,20 @@ def get_employee_monthly_approval_snapshot(employee, payroll_month):
     working_dates = set(get_working_dates(period_start, period_end, holiday_dates))
     attendance_dates = _attendance_dates(employee, period_start, period_end)
     approved_leave_dates = _approved_leave_dates(employee, period_start, period_end, holiday_dates)
+    effective_attendance_dates = _effective_attendance_dates(attendance_dates, approved_leave_dates)
 
-    approved_absence_dates = approved_leave_dates - attendance_dates
     if employee.included_in_attendance:
-        absent_dates = working_dates - attendance_dates - approved_leave_dates
+        days_without_attendance = working_dates - effective_attendance_dates
+        unapproved_absence_dates = days_without_attendance - approved_leave_dates
     else:
-        absent_dates = set()
+        days_without_attendance = set()
+        unapproved_absence_dates = set()
 
     return {
         'employee': employee,
-        'approved_leave_days': len(approved_absence_dates),
-        'absent_days': len(absent_dates),
+        'approved_leave_days': len(approved_leave_dates),
+        'days_without_attendance': len(days_without_attendance),
+        'unapproved_absent_days': len(unapproved_absence_dates),
         'period_start': period_start,
         'period_end': period_end,
         'month_start': month_start,
@@ -254,11 +261,11 @@ def calculate_payroll_for_employee(employee, payroll_month):
     working_dates = set(get_working_dates(period_start, period_end, holiday_dates))
     attendance_dates = _attendance_dates(employee, period_start, period_end)
     approved_leave_dates = _approved_leave_dates(employee, period_start, period_end, holiday_dates)
-    approved_absence_dates = approved_leave_dates - attendance_dates
+    effective_attendance_dates = _effective_attendance_dates(attendance_dates, approved_leave_dates)
 
     if employee.included_in_attendance:
-        unapproved_absence_dates = working_dates - attendance_dates - approved_leave_dates
-        present_days = len(working_dates.intersection(attendance_dates))
+        unapproved_absence_dates = working_dates - effective_attendance_dates - approved_leave_dates
+        present_days = len(working_dates.intersection(effective_attendance_dates))
     else:
         unapproved_absence_dates = set()
         present_days = 0
@@ -274,11 +281,10 @@ def calculate_payroll_for_employee(employee, payroll_month):
             prior_period_end = min(prior_end, employee.contract_end_date or prior_end)
             prior_holidays = set(Holiday.objects.filter(date__range=(prior_start, prior_period_end)).values_list('date', flat=True))
             prior_approved_dates = _approved_leave_dates(employee, prior_start, prior_period_end, prior_holidays)
-            prior_attendance_dates = _attendance_dates(employee, prior_start, prior_period_end)
-            prior_approved_count = len(prior_approved_dates - prior_attendance_dates)
+            prior_approved_count = len(prior_approved_dates)
 
     annual_remaining = max(employee.annual_leave_allowance - prior_approved_count, 0)
-    approved_leave_days = len(approved_absence_dates)
+    approved_leave_days = len(approved_leave_dates)
     approved_paid_leave_days = min(approved_leave_days, employee.monthly_leave_cap, annual_remaining)
     approved_lwp_days = max(approved_leave_days - approved_paid_leave_days, 0)
     unapproved_lwp_days = len(unapproved_absence_dates)

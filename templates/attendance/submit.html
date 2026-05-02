@@ -17,7 +17,16 @@
                     <div><strong>Reports to:</strong> {{ employee.manager_name|default:"Not assigned" }}</div>
                     <div><strong>Date:</strong> {{ today }}</div>
                 </div>
-                {% if today_record %}
+                {% if approved_leave_today %}
+                    <div class="alert alert-warning">
+                        You cannot fill in attendance for today because you are on approved leave.
+                    </div>
+                    {% if today_record %}
+                        <div class="small text-muted">
+                            An attendance entry already exists for today, but approved leave takes precedence and that attendance will be ignored.
+                        </div>
+                    {% endif %}
+                {% elif today_record %}
                     <div class="alert alert-success">Attendance already submitted for today.</div>
                     <p class="mb-0"><strong>Summary:</strong> {{ today_record.work_summary }}</p>
                 {% else %}
